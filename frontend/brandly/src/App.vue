@@ -1,14 +1,21 @@
 <template>
   <div id="app">
-    <router-view></router-view>
+    <NavBar />
+    <div class="main-content">
+      <router-view></router-view>
+    </div>
   </div>
 </template>
 
 <script>
+import NavBar from './components/Navbar.vue';
 
 export default {
-  name: 'App'
-}
+  name: 'App',
+  components: {
+    NavBar
+  }
+};
 </script>
 
 <style>
@@ -18,5 +25,28 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
   background-image: linear-gradient(to right, #C9D6FF, #E2E2E2);
+}
+
+.main-content {
+  overflow-y: auto;
+  height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #4e0110;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c16200;
+  border-radius: 10px;
+}
+
+body {
+  height: 100vh;
+  margin: 0;
 }
 </style>

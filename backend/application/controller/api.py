@@ -17,7 +17,8 @@ signup_parser = reqparse.RequestParser()
 signup_parser.add_argument('email', type=str, required=True, help='Email address is required')
 signup_parser.add_argument('password', type=str, required=True, help='Password is required')
 signup_parser.add_argument('role', type=str, required=True, choices=('Sponsor', 'Influencer', 'Admin'), help='Role is required')
-signup_parser.add_argument('company_name', type=str, required=False)
+signup_parser.add_argument('companyName', type=str, required=False)
+signup_parser.add_argument('name', type=str, required=False)
 signup_parser.add_argument('industry', type=str, required=False)
 signup_parser.add_argument('budget', type=int, required=False)
 signup_parser.add_argument('category', type=str, required=False)
@@ -26,7 +27,7 @@ signup_parser.add_argument('reach', type=int, required=False)
 
 # Output fields
 sponsor_fields = {
-    'company_name': fields.String,
+    'companyName': fields.String,
     'industry': fields.String,
     'budget': fields.Integer,
     'isVerified': fields.Boolean
@@ -48,41 +49,49 @@ user_fields = {
 }
 
 class SignupAPI(Resource):
-    @marshal_with(user_fields)
     def post(self):
         args = signup_parser.parse_args()
 
-        role_name = args['role'] # Check if the role provided is valid
+        existing_user = User.query.filter_by(email=args['email']).first()
+        if existing_user:
+            return {'msg': 'User with this email already exists'}, 409
+
+        role_name = args['role']
         role = Role.query.filter_by(name=role_name).first()
         if not role:
-            return {'message': 'Invalid role provided'}, 400
+            return {'msg': 'Invalid role provided'}, 400
 
-        # Create a new user instance
-        new_user = User(email=args['email'], role=role)
-        new_user.set_password(args['password'])
-
-        db.session.add(new_user)
-        db.session.commit()
-
-        # Assign the specific role
         if role_name == 'Sponsor':
-            if not args['company_name'] or not args['industry'] or args['budget'] is None:
-                return {'message': 'Company name, industry, and budget are required for sponsor role'}, 400
+            if not args['companyName'] or not args['industry'] or args['budget'] is None:
+                return {'msg': 'Company name, industry, and budget are required for sponsor role'}, 400
+            
+            new_user = User(email=args['email'], role=role)
+            new_user.set_password(args['password'])
+
+            db.session.add(new_user)
+            db.session.commit()
 
             new_sponsor = Sponsor(
                 user_id=new_user.id,
-                company_name=args['company_name'],
+                company_name=args['companyName'],
                 industry=args['industry'],
                 budget=args['budget']
             )
             db.session.add(new_sponsor)
             new_user.sponsor = new_sponsor
         elif role_name == 'Influencer':
-            if not args['category'] or not args['niche'] or args['reach'] is None:
-                return {'message': 'Category, niche, and reach are required for influencer role'}, 400
+            if not args['category'] or not args['niche'] or not args['name'] or args['reach'] is None:
+                return {'msg': 'Category, niche, name and reach are required for influencer role'}, 400
+            
+            new_user = User(email=args['email'], role=role)
+            new_user.set_password(args['password'])
+
+            db.session.add(new_user)
+            db.session.commit()
 
             new_influencer = Influencer(
                 user_id=new_user.id,
+                name=args['name'],
                 category=args['category'],
                 niche=args['niche'],
                 reach=args['reach']
@@ -90,7 +99,8 @@ class SignupAPI(Resource):
             db.session.add(new_influencer)
             new_user.influencer = new_influencer
         db.session.commit()
-        return new_user, 201
+        access_token = create_access_token(identity=new_user.id)
+        return {'msg':'User Created Successfully','access_token': access_token},201
 
 
 # Login Parser
@@ -105,9 +115,9 @@ class LoginAPI(Resource):
 
         if user and user.check_password(args['password']):
             access_token = create_access_token(identity=user.id)
-            return {'access_token': access_token}, 200
+            return {'msg':'Login Successfull','access_token': access_token},200
         else:
-            return {'message': 'Invalid email or password'}, 401
+            return {'msg': 'Invalid email or password'}, 401
 
 
 # Request parsers

@@ -1,21 +1,26 @@
+// main.js
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 import App from './App.vue';
 import SignupPage from './pages/SignupPage.vue';
 import 'mdb-vue-ui-kit/css/mdb.min.css';
+import LoginPage from './pages/LoginPage.vue';
+import HomePage from './pages/HomePage.vue';
+import store from './store'; // Import Vuex store
 
 Vue.config.productionTip = false;
-Vue.use(VueRouter)
+Vue.use(VueRouter);
 
 const router = new VueRouter({
   routes: [
-  { path: '/', component: SignupPage },
-]
-})
+    { path: '/', component: HomePage },
+    { path: '/login', component: LoginPage },
+    { path: '/register', component: SignupPage },
+  ],
+});
 
 new Vue({
   router,
+  store,
   render: h => h(App),
-}).$mount('#app')
-
-export {router};
+}).$mount('#app');

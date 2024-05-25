@@ -1,5 +1,6 @@
 from flask import Flask, render_template
 from flask_restful import Resource, Api
+from flask_cors import CORS
 from application import config
 from application.config import LocalDevelopmentConfig
 from application.data.database import db
@@ -31,6 +32,9 @@ def create_app():
     api = Api(app)
     app.app_context().push()
     
+    CORS(app)
+    app.app_context().push()
+
     db.create_all()
 
     if not Role.query.all():
@@ -55,4 +59,4 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 if __name__ == '__main__':
-  app.run(host='0.0.0.0',port=8080,debug=True)
+  app.run(host='0.0.0.0',port=8000,debug=True)
