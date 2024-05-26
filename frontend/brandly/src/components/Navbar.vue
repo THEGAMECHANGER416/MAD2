@@ -4,7 +4,7 @@
     <!-- Container wrapper -->
     <div class="container-fluid">
       <!-- Toggle button -->
-      <button data-mdb-collapse-init class="navbar-toggler" type="button" data-mdb-target="#navbarSupportedContent"
+      <button class="navbar-toggler" type="button" data-mdb-toggle="collapse" data-mdb-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <i class="fas fa-bars"></i>
       </button>
@@ -20,20 +20,18 @@
       <!-- Collapsible wrapper -->
 
       <!-- Avatar -->
-      <div v-if="isLoggedIn" class="dropdown">
-        <a data-mdb-dropdown-init class="dropdown-toggle d-flex align-items-center" href="#"
-          id="navbarDropdownMenuAvatar" role="button" aria-expanded="true">
-          <img src="https://mdbcdn.b-cdn.net/img/new/avatars/2.webp" class="rounded-circle" height="25"
+      <div v-if="isLoggedIn && user" class="dropdown">
+        <a class="dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdownMenuAvatar" role="button"
+          data-mdb-toggle="dropdown" aria-expanded="false">
+          <img src="../assets/img/avatar.svg" class="rounded-circle" height="35"
             alt="Black and White Portrait of a Man" loading="lazy" />
         </a>
         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownMenuAvatar">
-          <li>
-            <a class="dropdown-item" href="#">My profile</a>
+          <li v-if="user.email && user.role">
+            <span class="dropdown-item-text mb-0">{{ user.email }}<br> Role: {{ user.role }}</span>
           </li>
           <li>
-            <a class="dropdown-item" href="#">Settings</a>
-          </li>
-          <li>
+            <hr class="dropdown-divider mt-0 mb-0"/>
             <a class="dropdown-item" @click="logout" href="#">Logout</a>
           </li>
         </ul>
@@ -55,30 +53,29 @@
 </template>
 
 <script>
-import { Dropdown, Collapse, initMDB } from "mdb-ui-kit";
+import { mapState, mapActions } from 'vuex';
+import { Dropdown, Collapse, initMDB } from 'mdb-ui-kit';
 
 export default {
   name: 'NavBar',
-  mounted() {
-    this.initMDBInputs();
-    this.isLoggedIn = localStorage.getItem('accessToken') !== null;
-  },
-  updated() {
-    this.initMDBInputs();
-  },
   computed: {
-    isLoggedIn() {
-      return this.$store.state.isLoggedIn;
+    ...mapState(['isLoggedIn']),
+    user() {
+      return this.$store.state.user;
     },
   },
   methods: {
+    ...mapActions(['logout']),
     initMDBInputs() {
       initMDB({ Dropdown, Collapse });
+      new Dropdown(document.getElementById('navbarDropdownMenuAvatar'));
     },
-    logout() {
-      this.$store.dispatch('logout');
-      this.$router.push('/register')
-    },
+  },
+  mounted() {
+    this.initMDBInputs();
+  },
+  updated() {
+    this.initMDBInputs();
   },
 };
 </script>

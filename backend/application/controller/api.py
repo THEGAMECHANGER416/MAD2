@@ -38,7 +38,7 @@ influencer_fields = {
     'category': fields.String,
     'niche': fields.String,
     'reach': fields.Integer
-}
+}   
 
 user_fields = {
     'id': fields.Integer,
@@ -61,16 +61,16 @@ class SignupAPI(Resource):
         if not role:
             return {'msg': 'Invalid role provided'}, 400
 
+        new_user = User(email=args['email'], role=role)
+        new_user.set_password(args['password'])
+
+        db.session.add(new_user)
+        db.session.commit()
+
         if role_name == 'Sponsor':
             if not args['companyName'] or not args['industry'] or args['budget'] is None:
                 return {'msg': 'Company name, industry, and budget are required for sponsor role'}, 400
             
-            new_user = User(email=args['email'], role=role)
-            new_user.set_password(args['password'])
-
-            db.session.add(new_user)
-            db.session.commit()
-
             new_sponsor = Sponsor(
                 user_id=new_user.id,
                 company_name=args['companyName'],
@@ -81,14 +81,8 @@ class SignupAPI(Resource):
             new_user.sponsor = new_sponsor
         elif role_name == 'Influencer':
             if not args['category'] or not args['niche'] or not args['name'] or args['reach'] is None:
-                return {'msg': 'Category, niche, name and reach are required for influencer role'}, 400
+                return {'msg': 'Category, niche, name, and reach are required for influencer role'}, 400
             
-            new_user = User(email=args['email'], role=role)
-            new_user.set_password(args['password'])
-
-            db.session.add(new_user)
-            db.session.commit()
-
             new_influencer = Influencer(
                 user_id=new_user.id,
                 name=args['name'],
@@ -98,9 +92,13 @@ class SignupAPI(Resource):
             )
             db.session.add(new_influencer)
             new_user.influencer = new_influencer
+
         db.session.commit()
         access_token = create_access_token(identity=new_user.id)
-        return {'msg':'User Created Successfully','access_token': access_token},201
+
+        user_data = marshal(new_user, user_fields)
+        return {'msg': 'User Created Successfully', 'user': user_data, 'access_token': access_token}, 201
+
 
 
 # Login Parser
@@ -115,7 +113,16 @@ class LoginAPI(Resource):
 
         if user and user.check_password(args['password']):
             access_token = create_access_token(identity=user.id)
-            return {'msg':'Login Successfull','access_token': access_token},200
+            
+            if user.role.name == 'Sponsor':
+                sponsor = Sponsor.query.filter_by(user_id=user.id).first()
+                user.sponsor = sponsor
+            elif user.role.name == 'Influencer':
+                influencer = Influencer.query.filter_by(user_id=user.id).first()
+                user.influencer = influencer
+            
+            user_data = marshal(user, user_fields)
+            return {'msg': 'Login Successful', 'user': user_data, 'access_token': access_token}, 200
         else:
             return {'msg': 'Invalid email or password'}, 401
 
@@ -140,12 +147,10 @@ class ProfileAPI(Resource):
         user = User.query.get(user_id)
 
         if user.role.name == 'Sponsor':
-            sponsor = Sponsor.query.filter_by(user_id=user.id).first()
-            user.sponsor = sponsor
+            user.sponsor = Sponsor.query.filter_by(user_id=user.id).first()
 
         elif user.role.name == 'Influencer':
-            influencer = Influencer.query.filter_by(user_id=user.id).first()
-            user.influencer = influencer
+            user.influencer = Influencer.query.filter_by(user_id=user.id).first()
 
         return user, 200
 
@@ -165,7 +170,7 @@ class ProfileAPI(Resource):
         if args['password']:
             user.set_password(args['password'])
 
-        if user.role.name == 'sponsor':
+        if user.role.name == 'Sponsor':
             sponsor = Sponsor.query.filter_by(user_id=user.id).first()
             if sponsor:
                 if args['company_name']:
@@ -174,7 +179,7 @@ class ProfileAPI(Resource):
                     sponsor.industry = args['industry']
                 if args['budget'] is not None:
                     sponsor.budget = args['budget']
-        elif user.role.name == 'influencer':
+        elif user.role.name == 'Influencer':
             influencer = Influencer.query.filter_by(user_id=user.id).first()
             if influencer:
                 if args['name']:
@@ -187,4 +192,4 @@ class ProfileAPI(Resource):
                     influencer.reach = args['reach']
 
         db.session.commit()
-        return {'message': 'Profile updated successfully'}, 200
+        return user, 200

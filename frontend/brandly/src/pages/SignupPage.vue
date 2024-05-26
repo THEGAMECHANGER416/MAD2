@@ -1,4 +1,3 @@
-<!-- src/components/SignupPage.vue -->
 <template>
   <section class="background-radial-gradient overflow-hidden mb-0">
     <div class="container px-4 py-5 px-md-5 text-center text-lg-start my-5 mb-0">
@@ -30,7 +29,9 @@
 
                 <!-- Password input -->
                 <div data-mdb-input-init class="form-outline mb-4">
-                  <input type="password" id="form3Example4" class="form-control" v-model="formData.password" required />
+                  <input type="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                    title="Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters"
+                    id="form3Example4" class="form-control" v-model="formData.password" required />
                   <label class="form-label" for="form3Example4">Password</label>
                 </div>
 
@@ -65,53 +66,47 @@
                 </div>
 
                 <!-- Conditional input fields based on user type -->
-                <!-- Company Name (for Sponsor) -->
-                <div v-if="userType === 'Sponsor'" data-mdb-input-init class="form-outline mb-4">
-                  <input type="text" id="companyName" class="form-control" v-model="formData.companyName" />
-                  <label class="form-label" for="companyName">Company Name</label>
-                </div>
-
-                <!-- Industry (for Sponsor) -->
-                <div v-if="userType === 'Sponsor'" data-mdb-input-init class="form-outline mb-4">
-                  <input type="text" id="industry" class="form-control" v-model="formData.industry" />
-                  <label class="form-label" for="industry">Industry</label>
-                </div>
-
-                <!-- Budget (for Sponsor) -->
-                <div v-if="userType === 'Sponsor'" data-mdb-input-init class="form-outline mb-4">
-                  <input type="number" id="budget" class="form-control" v-model="formData.budget" />
-                  <label class="form-label" for="budget">Budget</label>
-                </div>
-
-                <!-- Full Name (for Influencer) -->
-                <div v-if="userType === 'Influencer'" data-mdb-input-init class="form-outline mb-4">
-                  <input type="text" id="name" class="form-control" v-model="formData.name" />
-                  <label class="form-label" for="name">Full Name</label>
-                </div>
-
-                <!-- Category (for Influencer) -->
-                <div v-if="userType === 'Influencer'" data-mdb-input-init class="form-outline mb-4">
-                  <input type="text" id="category" class="form-control" v-model="formData.category" />
-                  <label class="form-label" for="category">Category</label>
-                </div>
-
-                <!-- Niche (for Influencer) -->
-                <div v-if="userType === 'Influencer'" data-mdb-input-init class="form-outline mb-4">
-                  <input type="text" id="niche" class="form-control" v-model="formData.niche" />
-                  <label class="form-label" for="niche">Niche</label>
-                </div>
-
-                <!-- Reach (for Influencer) -->
-                <div v-if="userType === 'Influencer'" data-mdb-input-init class="form-outline mb-4">
-                  <input type="number" id="reach" class="form-control" v-model="formData.reach" />
-                  <label class="form-label" for="reach">Reach</label>
-                </div>
-                <!-- Conditional input fields based on user type /-->
+                <template v-if="userType === 'Sponsor'">
+                  <div data-mdb-input-init class="form-outline mb-4">
+                    <input type="text" id="companyName" class="form-control" v-model="formData.companyName" />
+                    <label class="form-label" for="companyName">Company Name</label>
+                  </div>
+                  <div data-mdb-input-init class="form-outline mb-4">
+                    <input type="text" id="industry" class="form-control" v-model="formData.industry" />
+                    <label class="form-label" for="industry">Industry</label>
+                  </div>
+                  <div data-mdb-input-init class="form-outline mb-4">
+                    <input type="number" id="budget" class="form-control" v-model="formData.budget" />
+                    <label class="form-label" for="budget">Budget</label>
+                  </div>
+                </template>
+                <template v-if="userType === 'Influencer'">
+                  <div data-mdb-input-init class="form-outline mb-4">
+                    <input type="text" id="name" class="form-control" v-model="formData.name" />
+                    <label class="form-label" for="name">Full Name</label>
+                  </div>
+                  <div data-mdb-input-init class="form-outline mb-4">
+                    <input type="text" id="category" class="form-control" v-model="formData.category" />
+                    <label class="form-label" for="category">Category</label>
+                  </div>
+                  <div data-mdb-input-init class="form-outline mb-4">
+                    <input type="text" id="niche" class="form-control" v-model="formData.niche" />
+                    <label class="form-label" for="niche">Niche</label>
+                  </div>
+                  <div data-mdb-input-init class="form-outline mb-4">
+                    <input type="number" id="reach" class="form-control" v-model="formData.reach" />
+                    <label class="form-label" for="reach">Reach</label>
+                  </div>
+                </template>
 
                 <!-- Submit button -->
                 <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-block mb-4">
                   Sign up
                 </button>
+
+                <div v-if="errorMessage" class="alert alert-warning mt-3" role="alert">
+                  {{ errorMessage }}
+                </div>
 
                 <!-- Already a member? Login Instead link -->
                 <div class="text-center mt-3">
@@ -132,11 +127,6 @@ import { mapActions } from 'vuex';
 
 export default {
   name: "SignupPage",
-  mounted() {
-    // Ensure that MDB is initialized after the component is mounted
-    this.initMDBInputs();
-    console.log("Mounted Signup")
-  },
   data() {
     return {
       userType: 'Sponsor',
@@ -153,8 +143,16 @@ export default {
         niche: '',
         reach: null
       },
-      passwordsMatch: true
+      passwordsMatch: true,
+      errorMessage: '',
     };
+  },
+  mounted() {
+    this.initMDBInputs();
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
+      this.$router.push('/');
+    }
   },
   methods: {
     ...mapActions(['login']),
@@ -178,21 +176,10 @@ export default {
     },
     handleSubmit() {
       if (!this.passwordsMatch) {
-        return
+        return;
       }
-      console.log('Form data:', this.formData);
       const myHeaders = new Headers();
       myHeaders.append("Content-Type", "application/json");
-
-      // const raw = JSON.stringify({
-      //   "email": "Influencer1@example.com",
-      //   "password": "Influencer1password",
-      //   "role": "Influencer",
-      //   "category": "Lifestyle",
-      //   "name": "MrBeast",
-      //   "niche": "Travel",
-      //   "reach": 500000
-      // });
 
       const requestOptions = {
         method: "POST",
@@ -204,22 +191,22 @@ export default {
       fetch("http://127.0.0.1:8000/api/signup", requestOptions)
         .then((response) => {
           if (!response.ok) {
-            throw new Error('Network response was not ok');
+            return response.json().then((data) => {
+              throw new Error(data.msg || 'Network response was not ok');
+            });
           }
-
           return response.json();
         })
         .then((data) => {
           const accessToken = data.access_token;
-          console.log(accessToken);
-          if (accessToken) {
-            localStorage.setItem('accessToken', accessToken);
+          const userData = data.user;
+          if (accessToken && userData) {
+            this.$store.dispatch('login', { user: userData, accessToken: accessToken });
           }
-          this.login(accessToken)
-          this.$router.push('/');
         })
-        .catch((error) => console.error(error));
-
+        .catch((error) => {
+          this.errorMessage = error.message;
+        });
     }
   },
   watch: {
