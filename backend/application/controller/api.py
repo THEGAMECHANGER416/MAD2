@@ -73,7 +73,7 @@ class SignupAPI(Resource):
             
             new_sponsor = Sponsor(
                 user_id=new_user.id,
-                company_name=args['companyName'],
+                companyName=args['companyName'],
                 industry=args['industry'],
                 budget=args['budget']
             )
@@ -131,7 +131,7 @@ class LoginAPI(Resource):
 update_profile_parser = reqparse.RequestParser()
 update_profile_parser.add_argument('email', type=str, required=False)
 update_profile_parser.add_argument('password', type=str, required=False)
-update_profile_parser.add_argument('company_name', type=str, required=False)
+update_profile_parser.add_argument('companyName', type=str, required=False)
 update_profile_parser.add_argument('industry', type=str, required=False)
 update_profile_parser.add_argument('budget', type=int, required=False)
 update_profile_parser.add_argument('name', type=str, required=False)
@@ -155,6 +155,7 @@ class ProfileAPI(Resource):
         return user, 200
 
     @jwt_required()
+    @marshal_with(user_fields)
     def put(self):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -173,8 +174,8 @@ class ProfileAPI(Resource):
         if user.role.name == 'Sponsor':
             sponsor = Sponsor.query.filter_by(user_id=user.id).first()
             if sponsor:
-                if args['company_name']:
-                    sponsor.company_name = args['company_name']
+                if args['companyName']:
+                    sponsor.companyName = args['companyName']
                 if args['industry']:
                     sponsor.industry = args['industry']
                 if args['budget'] is not None:
@@ -192,4 +193,9 @@ class ProfileAPI(Resource):
                     influencer.reach = args['reach']
 
         db.session.commit()
+        if user.role.name == 'Sponsor':
+            user.sponsor = Sponsor.query.filter_by(user_id=user.id).first()
+
+        elif user.role.name == 'Influencer':
+            user.influencer = Influencer.query.filter_by(user_id=user.id).first()
         return user, 200

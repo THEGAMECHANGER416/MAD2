@@ -27,7 +27,7 @@ class Sponsor(db.Model):
     __tablename__ = 'sponsor'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
-    company_name = db.Column(db.String(100))
+    companyName = db.Column(db.String(100))
     industry = db.Column(db.String(100))
     budget = db.Column(db.Integer)
     isVerified = db.Column(db.Boolean())

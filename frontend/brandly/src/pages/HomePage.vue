@@ -1,6 +1,6 @@
 <template>
   <div class="mb-0 container-fluid">
-    <h1>Home Page</h1>
+    <h1>I am an Idiot</h1>
     <div v-if="user">
       <h2>Welcome, {{ user.email }}</h2>
       <p>User ID: {{ user.id }}</p>

@@ -32,7 +32,10 @@
           </li>
           <li>
             <hr class="dropdown-divider mt-0 mb-0"/>
-            <a class="dropdown-item" @click="logout" href="#">Logout</a>
+            <router-link class="dropdown-item mb-0" to="/editProfile">Edit Profile</router-link>
+          </li>
+          <li>
+            <a class="dropdown-item mt-0" @click="logout" href="#">Logout</a>
           </li>
         </ul>
       </div>

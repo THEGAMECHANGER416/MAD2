@@ -6,6 +6,7 @@ import SignupPage from './pages/SignupPage.vue';
 import 'mdb-vue-ui-kit/css/mdb.min.css';
 import LoginPage from './pages/LoginPage.vue';
 import HomePage from './pages/HomePage.vue';
+import ProfilePage from './pages/ProfilePage.vue'
 import store from './store'; // Import Vuex store
 
 Vue.config.productionTip = false;
@@ -16,6 +17,7 @@ const router = new VueRouter({
     { path: '/', component: HomePage },
     { path: '/login', component: LoginPage },
     { path: '/register', component: SignupPage },
+    { path: '/editProfile', component: ProfilePage },
   ],
 });
 
