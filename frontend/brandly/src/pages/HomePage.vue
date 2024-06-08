@@ -1,12 +1,10 @@
 <template>
-  <div class="mb-0 container-fluid">
-    <h1>I am an Idiot</h1>
+  <div class="mb-0 container-fluid wrapper-class">
     <div v-if="user">
-      <h2>Welcome, {{ user.email }}</h2>
-      <p>User ID: {{ user.id }}</p>
-      <!-- Show the role of the user -->
       <div v-if="role === 'Influencer'">Role: Influencer</div>
-      <div v-else-if="role === 'Sponsor'">Role: Sponsor</div>
+      <div v-else-if="role === 'Sponsor'">
+        <SponsorHome />
+      </div>
       <div v-else>Role: Unknown</div>
     </div>
     <div v-else>
@@ -16,8 +14,13 @@
 </template>
 
 <script>
+import SponsorHome from '../components/SponsorHome.vue';
+
 export default {
   name: 'HomePage',
+  components:{
+    SponsorHome
+  },
   computed: {
     user() {
       return this.$store.state.user;
@@ -70,4 +73,8 @@ export default {
 }
 </script>
 
-<style></style>
+<style>
+.wrapper-class {
+  margin-top: 5em;
+}
+</style>

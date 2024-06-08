@@ -48,10 +48,12 @@ jwt = JWTManager(app)
 from application.controller.controllers import *
 
 # Importing all APIs
-from application.controller.api import SignupAPI,LoginAPI,ProfileAPI
+from application.controller.api import SignupAPI,LoginAPI,ProfileAPI,CampaignAPI,AdRequestAPI
 api.add_resource(SignupAPI, "/api/signup")
 api.add_resource(LoginAPI, "/api/login")
 api.add_resource(ProfileAPI, "/api/profile")
+api.add_resource(CampaignAPI, '/campaigns', '/campaigns/<int:campaign_id>')
+api.add_resource(AdRequestAPI, '/ad_requests', '/ad_requests/<int:ad_request_id>')
 
 
 @app.errorhandler(404)

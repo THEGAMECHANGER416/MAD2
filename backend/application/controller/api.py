@@ -5,9 +5,8 @@ from flask import current_app as app
 from flask_security import Security, SQLAlchemyUserDatastore, auth_required
 from werkzeug.security import generate_password_hash
 from application.data.database import db
-from flask import abort
 from application.data.models import User,Role,Sponsor, Influencer, Campaign, AdRequest
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 from flask_restful import Api, Resource, reqparse, fields, marshal_with
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -38,7 +37,7 @@ influencer_fields = {
     'category': fields.String,
     'niche': fields.String,
     'reach': fields.Integer
-}   
+}
 
 user_fields = {
     'id': fields.Integer,
@@ -48,6 +47,30 @@ user_fields = {
     'influencer': fields.Nested(influencer_fields, allow_null=True)
 }
 
+# Parsers for other models
+campaign_parser = reqparse.RequestParser()
+campaign_parser.add_argument('name', type=str, required=True)
+campaign_parser.add_argument('description', type=str, required=True)
+campaign_parser.add_argument('start_date', type=str, required=True)
+campaign_parser.add_argument('end_date', type=str, required=True)
+campaign_parser.add_argument('budget', type=int, required=True)
+campaign_parser.add_argument('isActive', type=bool, required=True)
+campaign_parser.add_argument('isPrivate', type=bool, required=True)
+campaign_parser.add_argument('progress', type=int, required=True)
+
+ad_request_parser = reqparse.RequestParser()
+ad_request_parser.add_argument('campaign_id', type=int, required=True)
+ad_request_parser.add_argument('influencer_id', type=int, required=False)
+ad_request_parser.add_argument('messages', type=str, required=False)
+ad_request_parser.add_argument('requirements', type=str, required=False)
+ad_request_parser.add_argument('payment_amount', type=float, required=False)
+ad_request_parser.add_argument('status', type=str, required=True)
+ad_request_parser.add_argument('goal', type=str, required=False)
+ad_request_parser.add_argument('platform', type=str, required=False)
+ad_request_parser.add_argument('target_audience', type=str, required=False)
+ad_request_parser.add_argument('budget', type=int, required=False)
+
+# Resource classes
 class SignupAPI(Resource):
     def post(self):
         args = signup_parser.parse_args()
@@ -99,13 +122,6 @@ class SignupAPI(Resource):
         user_data = marshal(new_user, user_fields)
         return {'msg': 'User Created Successfully', 'user': user_data, 'access_token': access_token}, 201
 
-
-
-# Login Parser
-login_parser = reqparse.RequestParser()
-login_parser.add_argument('email', type=str, required=True, help='Email address is required')
-login_parser.add_argument('password', type=str, required=True, help='Password is required')
-
 class LoginAPI(Resource):
     def post(self):
         args = login_parser.parse_args()
@@ -125,19 +141,6 @@ class LoginAPI(Resource):
             return {'msg': 'Login Successful', 'user': user_data, 'access_token': access_token}, 200
         else:
             return {'msg': 'Invalid email or password'}, 401
-
-
-# Request parsers
-update_profile_parser = reqparse.RequestParser()
-update_profile_parser.add_argument('email', type=str, required=False)
-update_profile_parser.add_argument('password', type=str, required=False)
-update_profile_parser.add_argument('companyName', type=str, required=False)
-update_profile_parser.add_argument('industry', type=str, required=False)
-update_profile_parser.add_argument('budget', type=int, required=False)
-update_profile_parser.add_argument('name', type=str, required=False)
-update_profile_parser.add_argument('category', type=str, required=False)
-update_profile_parser.add_argument('niche', type=str, required=False)
-update_profile_parser.add_argument('reach', type=int, required=False)
 
 class ProfileAPI(Resource):
     @jwt_required()
@@ -199,3 +202,219 @@ class ProfileAPI(Resource):
         elif user.role.name == 'Influencer':
             user.influencer = Influencer.query.filter_by(user_id=user.id).first()
         return user, 200
+
+class CampaignAPI(Resource):
+    @jwt_required()
+    @marshal_with({
+        'id': fields.Integer,
+        'name': fields.String,
+        'description': fields.String,
+        'start_date': fields.DateTime,
+        'end_date': fields.DateTime,
+        'budget': fields.Integer,
+        'isActive': fields.Boolean,
+        'isPrivate': fields.Boolean,
+        'progress': fields.Integer,
+        'sponsor_id': fields.Integer
+    })
+    def get(self, campaign_id=None):
+        if campaign_id:
+            campaign = Campaign.query.get_or_404(campaign_id)
+            return campaign, 200
+        else:
+            campaigns = Campaign.query.all()
+            return campaigns, 200
+
+    @jwt_required()
+    def post(self):
+        args = campaign_parser.parse_args()
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if user.role.name != 'Sponsor':
+            return {'message': 'Only sponsors can create campaigns'}, 403
+        
+        new_campaign = Campaign(
+            name=args['name'],
+            description=args['description'],
+            start_date=args['start_date'],
+            end_date=args['end_date'],
+            budget=args['budget'],
+            isActive=args['isActive'],
+            isPrivate=args['isPrivate'],
+            progress=args['progress'],
+            sponsor_id=user.sponsor.id
+        )
+        
+        db.session.add(new_campaign)
+        db.session.commit()
+        
+        return marshal(new_campaign, {
+            'id': fields.Integer,
+            'name': fields.String,
+            'description': fields.String,
+            'start_date': fields.DateTime,
+            'end_date': fields.DateTime,
+            'budget': fields.Integer,
+            'isActive': fields.Boolean,
+            'isPrivate': fields.Boolean,
+            'progress': fields.Integer,
+            'sponsor_id': fields.Integer
+        }), 201
+
+    @jwt_required()
+    def put(self, campaign_id):
+        args = campaign_parser.parse_args()
+        campaign = Campaign.query.get_or_404(campaign_id)
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if user.role.name != 'Sponsor' or campaign.sponsor_id != user.sponsor.id:
+            return {'message': 'You do not have permission to edit this campaign'}, 403
+
+        campaign.name = args['name']
+        campaign.description = args['description']
+        campaign.start_date = args['start_date']
+        campaign.end_date = args['end_date']
+        campaign.budget = args['budget']
+        campaign.isActive = args['isActive']
+        campaign.isPrivate = args['isPrivate']
+        campaign.progress = args['progress']
+
+        db.session.commit()
+        return marshal(campaign, {
+            'id': fields.Integer,
+            'name': fields.String,
+            'description': fields.String,
+            'start_date': fields.DateTime,
+            'end_date': fields.DateTime,
+            'budget': fields.Integer,
+            'isActive': fields.Boolean,
+            'isPrivate': fields.Boolean,
+            'progress': fields.Integer,
+            'sponsor_id': fields.Integer
+        }), 200
+
+    @jwt_required()
+    def delete(self, campaign_id):
+        campaign = Campaign.query.get_or_404(campaign_id)
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if user.role.name != 'Sponsor' or campaign.sponsor_id != user.sponsor.id:
+            return {'message': 'You do not have permission to delete this campaign'}, 403
+
+        db.session.delete(campaign)
+        db.session.commit()
+        return '', 204
+
+class AdRequestAPI(Resource):
+    @jwt_required()
+    @marshal_with({
+        'id': fields.Integer,
+        'campaign_id': fields.Integer,
+        'influencer_id': fields.Integer,
+        'messages': fields.String,
+        'requirements': fields.String,
+        'payment_amount': fields.Float,
+        'status': fields.String,
+        'goal': fields.String,
+        'platform': fields.String,
+        'target_audience': fields.String,
+        'budget': fields.Integer
+    })
+    def get(self, ad_request_id=None):
+        if ad_request_id:
+            ad_request = AdRequest.query.get_or_404(ad_request_id)
+            return ad_request, 200
+        else:
+            ad_requests = AdRequest.query.all()
+            return ad_requests, 200
+
+    @jwt_required()
+    def post(self):
+        args = ad_request_parser.parse_args()
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if user.role.name != 'Sponsor':
+            return {'message': 'Only sponsors can create ad requests'}, 403
+
+        new_ad_request = AdRequest(
+            campaign_id=args['campaign_id'],
+            influencer_id=args['influencer_id'],
+            messages=args['messages'],
+            requirements=args['requirements'],
+            payment_amount=args['payment_amount'],
+            status=args['status'],
+            goal=args['goal'],
+            platform=args['platform'],
+            target_audience=args['target_audience'],
+            budget=args['budget']
+        )
+
+        db.session.add(new_ad_request)
+        db.session.commit()
+
+        return marshal(new_ad_request, {
+            'id': fields.Integer,
+            'campaign_id': fields.Integer,
+            'influencer_id': fields.Integer,
+            'messages': fields.String,
+            'requirements': fields.String,
+            'payment_amount': fields.Float,
+            'status': fields.String,
+            'goal': fields.String,
+            'platform': fields.String,
+            'target_audience': fields.String,
+            'budget': fields.Integer
+        }), 201
+
+    @jwt_required()
+    def put(self, ad_request_id):
+        args = ad_request_parser.parse_args()
+        ad_request = AdRequest.query.get_or_404(ad_request_id)
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if user.role.name != 'Sponsor' or ad_request.campaign.sponsor_id != user.sponsor.id:
+            return {'message': 'You do not have permission to edit this ad request'}, 403
+
+        ad_request.campaign_id = args['campaign_id']
+        ad_request.influencer_id = args['influencer_id']
+        ad_request.messages = args['messages']
+        ad_request.requirements = args['requirements']
+        ad_request.payment_amount = args['payment_amount']
+        ad_request.status = args['status']
+        ad_request.goal = args['goal']
+        ad_request.platform = args['platform']
+        ad_request.target_audience = args['target_audience']
+        ad_request.budget = args['budget']
+
+        db.session.commit()
+        return marshal(ad_request, {
+            'id': fields.Integer,
+            'campaign_id': fields.Integer,
+            'influencer_id': fields.Integer,
+            'messages': fields.String,
+            'requirements': fields.String,
+            'payment_amount': fields.Float,
+            'status': fields.String,
+            'goal': fields.String,
+            'platform': fields.String,
+            'target_audience': fields.String,
+            'budget': fields.Integer
+        }), 200
+
+    @jwt_required()
+    def delete(self, ad_request_id):
+        ad_request = AdRequest.query.get_or_404(ad_request_id)
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if user.role.name != 'Sponsor' or ad_request.campaign.sponsor_id != user.sponsor.id:
+            return {'message': 'You do not have permission to delete this ad request'}, 403
+
+        db.session.delete(ad_request)
+        db.session.commit()
+        return '', 204

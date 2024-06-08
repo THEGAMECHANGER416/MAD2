@@ -32,19 +32,6 @@ export default {
   height: 100vh;
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #4e0110;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c16200;
-  border-radius: 10px;
-}
-
 body {
   height: 100vh;
   margin: 0;

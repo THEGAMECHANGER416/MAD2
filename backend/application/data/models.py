@@ -53,6 +53,7 @@ class Campaign(db.Model):
     budget = db.Column(db.Integer)
     isActive = db.Column(db.Boolean)
     isPrivate = db.Column(db.Boolean)
+    progress = db.Column(db.Integer)
 
     sponsor_id = db.Column(db.Integer, db.ForeignKey('sponsor.id'),nullable=False)
     ads = db.relationship('AdRequest', backref='campaign',lazy=True)
@@ -66,4 +67,7 @@ class AdRequest(db.Model):
     requirements = db.Column(db.Text)
     payment_amount = db.Column(db.Float)
     status = db.Column(db.String(50))
-
+    goal = db.Column(db.String(255))
+    platform = db.Column(db.String(100))
+    target_audience = db.Column(db.String(255))
+    budget = db.Column(db.Integer)

@@ -10,13 +10,21 @@
       </button>
 
       <!-- Collapsible wrapper -->
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <div v-if="isLoggedIn" class="collapse navbar-collapse" id="navbarSupportedContent">
         <!-- Navbar brand -->
         <router-link class="navbar-brand mt-2 mt-lg-0" to="/">
           <img src="../assets/img/logo.svg" height="30" alt="Brandly Logo" loading="lazy" />
           <p class="mb-0 title">Brandly</p>
         </router-link>
       </div>
+      <div v-else class="collapse navbar-collapse" id="navbarSupportedContent">
+        <!-- Navbar brand -->
+        <router-link class="navbar-brand mt-2 mt-lg-0" to="/register">
+          <img src="../assets/img/logo.svg" height="30" alt="Brandly Logo" loading="lazy" />
+          <p class="mb-0 title">Brandly</p>
+        </router-link>
+      </div>
+
       <!-- Collapsible wrapper -->
 
       <!-- Avatar -->
