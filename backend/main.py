@@ -26,13 +26,8 @@ def create_app():
     db.init_app(app)
     app.app_context().push()
 
-    # Setup Flask Security
-    # user_datastore = SQLAlchemySessionUserDatastore(db.session, User, Role)
-    # security = Security(app, user_datastore)
     api = Api(app)
-    app.app_context().push()
-    
-    CORS(app)
+    cors = CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE"]}})
     app.app_context().push()
 
     db.create_all()
@@ -44,21 +39,21 @@ def create_app():
 
 app, api = create_app()
 jwt = JWTManager(app)
+
 # Import all the controllers so they are loaded
 from application.controller.controllers import *
 
 # Importing all APIs
-from application.controller.api import SignupAPI,LoginAPI,ProfileAPI,CampaignAPI,AdRequestAPI
+from application.controller.api import SignupAPI, LoginAPI, ProfileAPI, CampaignAPI, AdRequestAPI
 api.add_resource(SignupAPI, "/api/signup")
 api.add_resource(LoginAPI, "/api/login")
 api.add_resource(ProfileAPI, "/api/profile")
-api.add_resource(CampaignAPI, '/campaigns', '/campaigns/<int:campaign_id>')
+api.add_resource(CampaignAPI, '/api/campaigns', '/api/campaigns/<int:campaign_id>')
 api.add_resource(AdRequestAPI, '/ad_requests', '/ad_requests/<int:ad_request_id>')
-
 
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
 if __name__ == '__main__':
-  app.run(host='0.0.0.0',port=8000,debug=True)
+    app.run(host='0.0.0.0', port=8000, debug=True)

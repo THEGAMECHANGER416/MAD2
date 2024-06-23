@@ -52,7 +52,6 @@ class Campaign(db.Model):
     end_date = db.Column(db.DateTime)
     budget = db.Column(db.Integer)
     isActive = db.Column(db.Boolean)
-    isPrivate = db.Column(db.Boolean)
     progress = db.Column(db.Integer)
 
     sponsor_id = db.Column(db.Integer, db.ForeignKey('sponsor.id'),nullable=False)

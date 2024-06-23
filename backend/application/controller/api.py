@@ -10,6 +10,7 @@ from flask import Flask, request, jsonify, abort
 from flask_restful import Api, Resource, reqparse, fields, marshal_with
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
 
 # Signup parsers
 signup_parser = reqparse.RequestParser()
@@ -55,7 +56,6 @@ campaign_parser.add_argument('start_date', type=str, required=True)
 campaign_parser.add_argument('end_date', type=str, required=True)
 campaign_parser.add_argument('budget', type=int, required=True)
 campaign_parser.add_argument('isActive', type=bool, required=True)
-campaign_parser.add_argument('isPrivate', type=bool, required=True)
 campaign_parser.add_argument('progress', type=int, required=True)
 
 ad_request_parser = reqparse.RequestParser()
@@ -122,6 +122,11 @@ class SignupAPI(Resource):
         user_data = marshal(new_user, user_fields)
         return {'msg': 'User Created Successfully', 'user': user_data, 'access_token': access_token}, 201
 
+# Login Parser
+login_parser = reqparse.RequestParser()
+login_parser.add_argument('email', type=str, required=True, help='Email address is required')
+login_parser.add_argument('password', type=str, required=True, help='Password is required')
+
 class LoginAPI(Resource):
     def post(self):
         args = login_parser.parse_args()
@@ -141,6 +146,18 @@ class LoginAPI(Resource):
             return {'msg': 'Login Successful', 'user': user_data, 'access_token': access_token}, 200
         else:
             return {'msg': 'Invalid email or password'}, 401
+
+# Profile Parser
+update_profile_parser = reqparse.RequestParser()
+update_profile_parser.add_argument('email', type=str, required=False)
+update_profile_parser.add_argument('password', type=str, required=False)
+update_profile_parser.add_argument('companyName', type=str, required=False)
+update_profile_parser.add_argument('industry', type=str, required=False)
+update_profile_parser.add_argument('budget', type=int, required=False)
+update_profile_parser.add_argument('name', type=str, required=False)
+update_profile_parser.add_argument('category', type=str, required=False)
+update_profile_parser.add_argument('niche', type=str, required=False)
+update_profile_parser.add_argument('reach', type=int, required=False)
 
 class ProfileAPI(Resource):
     @jwt_required()
@@ -213,7 +230,6 @@ class CampaignAPI(Resource):
         'end_date': fields.DateTime,
         'budget': fields.Integer,
         'isActive': fields.Boolean,
-        'isPrivate': fields.Boolean,
         'progress': fields.Integer,
         'sponsor_id': fields.Integer
     })
@@ -230,20 +246,18 @@ class CampaignAPI(Resource):
         args = campaign_parser.parse_args()
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
-
         if user.role.name != 'Sponsor':
             return {'message': 'Only sponsors can create campaigns'}, 403
         
         new_campaign = Campaign(
             name=args['name'],
             description=args['description'],
-            start_date=args['start_date'],
-            end_date=args['end_date'],
+            start_date= datetime.datetime.strptime(args['start_date'], "%Y-%m-%d"),
+            end_date=datetime.datetime.strptime(args['end_date'], "%Y-%m-%d"),
             budget=args['budget'],
             isActive=args['isActive'],
-            isPrivate=args['isPrivate'],
             progress=args['progress'],
-            sponsor_id=user.sponsor.id
+            sponsor_id=user_id
         )
         
         db.session.add(new_campaign)
@@ -257,7 +271,6 @@ class CampaignAPI(Resource):
             'end_date': fields.DateTime,
             'budget': fields.Integer,
             'isActive': fields.Boolean,
-            'isPrivate': fields.Boolean,
             'progress': fields.Integer,
             'sponsor_id': fields.Integer
         }), 201
@@ -278,7 +291,6 @@ class CampaignAPI(Resource):
         campaign.end_date = args['end_date']
         campaign.budget = args['budget']
         campaign.isActive = args['isActive']
-        campaign.isPrivate = args['isPrivate']
         campaign.progress = args['progress']
 
         db.session.commit()
@@ -290,7 +302,6 @@ class CampaignAPI(Resource):
             'end_date': fields.DateTime,
             'budget': fields.Integer,
             'isActive': fields.Boolean,
-            'isPrivate': fields.Boolean,
             'progress': fields.Integer,
             'sponsor_id': fields.Integer
         }), 200
@@ -301,12 +312,12 @@ class CampaignAPI(Resource):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
 
-        if user.role.name != 'Sponsor' or campaign.sponsor_id != user.sponsor.id:
+        if user.role.name != 'Sponsor' or campaign.sponsor_id != user.id:
             return {'message': 'You do not have permission to delete this campaign'}, 403
 
         db.session.delete(campaign)
         db.session.commit()
-        return '', 204
+        return {'message': 'Campaign Deleted Successfully'}, 204
 
 class AdRequestAPI(Resource):
     @jwt_required()

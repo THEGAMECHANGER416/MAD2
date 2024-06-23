@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage.vue';
 import HomePage from './pages/HomePage.vue';
 import ProfilePage from './pages/ProfilePage.vue'
 import store from './store'; // Import Vuex store
+import CampaignDetail from './pages/CampaignDetail.vue'
 
 Vue.config.productionTip = false;
 Vue.use(VueRouter);
@@ -18,6 +19,12 @@ const router = new VueRouter({
     { path: '/login', component: LoginPage },
     { path: '/register', component: SignupPage },
     { path: '/editProfile', component: ProfilePage },
+    {
+      path: '/campaign/:id',
+      name: 'CampaignDetail',
+      component: CampaignDetail,
+      props: true
+    }
   ],
 });
 

@@ -1,5 +1,5 @@
 <template>
-    <div class="card campaign-card">
+    <div class="card campaign-card" style="cursor: pointer" @click="openCampaign">
         <div class="card-body">
             <h5 class="card-title">{{ campaign.name }}</h5>
             <p class="card-text"><strong>Description:</strong> {{ campaign.description }}</p>
@@ -8,7 +8,7 @@
                     campaign.end_date) }}</p>
                 <div class="status-visibility">
                     <p class="card-text"><strong>Status:</strong> {{ campaign.isActive ? 'Active' : 'Inactive' }}</p>
-                    <p class="card-text"><strong>Visibility:</strong> {{ campaign.isPrivate ? 'Private' : 'Public' }}
+                    <p class="card-text"><strong>Budget:</strong> {{ campaign.budget }}
                     </p>
                 </div>
                 <div class="progress" style="height: 8px; position: relative;">
@@ -45,6 +45,9 @@ export default {
             const startFormatted = `${start.getDate()} ${start.toLocaleString('default', { month: 'short' })}`;
             const endFormatted = `${end.getDate()} ${end.toLocaleString('default', { month: 'short' })}`;
             return `${startFormatted} - ${endFormatted}`;
+        },
+        openCampaign() {
+            this.$emit('open-campaign', this.campaign.id, this.campaign.name);
         }
     }
 }

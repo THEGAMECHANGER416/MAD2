@@ -30,10 +30,29 @@ export default {
 .main-content {
   overflow-y: auto;
   height: 100vh;
+  scroll-behavior: smooth;
 }
 
 body {
   height: 100vh;
   margin: 0;
+}
+
+.main-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.main-content::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+    border-radius: 10px;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
 }
 </style>
