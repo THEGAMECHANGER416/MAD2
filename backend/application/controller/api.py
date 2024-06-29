@@ -282,13 +282,13 @@ class CampaignAPI(Resource):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
 
-        if user.role.name != 'Sponsor' or campaign.sponsor_id != user.sponsor.id:
+        if user.role.name != 'Sponsor' or campaign.sponsor_id != user.id:
             return {'message': 'You do not have permission to edit this campaign'}, 403
 
         campaign.name = args['name']
         campaign.description = args['description']
-        campaign.start_date = args['start_date']
-        campaign.end_date = args['end_date']
+        start_date= datetime.datetime.strptime(args['start_date'], "%Y-%m-%d"),
+        end_date=datetime.datetime.strptime(args['end_date'], "%Y-%m-%d"),
         campaign.budget = args['budget']
         campaign.isActive = args['isActive']
         campaign.progress = args['progress']

@@ -7,10 +7,13 @@
             </button>
         </div>
         <div class="campaigns-container">
-            <CampaignCard v-for="campaign in campaigns" :key="campaign.id" :campaign="campaign"
+            <CampaignCard v-for="campaign in campaigns" :key=campaign.id :campaign="campaign"
                 @open-campaign="openCampaign" />
         </div>
 
+        <div class="header-container">
+            <h2 class="mx-4 display-6 fw-bold">Your Ad Requests</h2>
+        </div>
         <!-- Modal -->
         <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true"
             ref="exampleModal">
