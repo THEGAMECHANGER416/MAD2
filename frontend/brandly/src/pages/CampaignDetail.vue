@@ -22,10 +22,13 @@
         </div>
       </div>
     </div>
-    <div class="ad-requests-container mt-0">
-      <AdRequestCard v-for="ad in adRequests" :key="ad.ad_id" :ad="ad" class="mb-3" />
+    <!-- Arrange ads in nx2 grid -->
+    <div class="container-fluid">
+      <div class="row justify-content-center gx-2">
+        <AdRequestCard class="col-md-4" v-for="ad in campaign.ads" :key="ad.id" :ad="ad" />
+      </div>
     </div>
-
+    
     <CustomModal :show.sync="editModalVisible">
       <template v-slot:header>
         <h4>Edit Campaign</h4>
@@ -75,11 +78,12 @@
         <h5>Create Ad</h5>
       </template>
       <template v-slot:body>
-        <form @submit.prevent="createAdRequest">
+        <form @submit.prevent="postAdRequest">
           <!-- Goal -->
           <div class="mb-3">
             <label for="goal" class="form-label">Goal</label>
-            <input v-model="newAdRequest.goal" type="text" placeholder="Enter your goal here" class="form-control" id="goal" required />
+            <input v-model="newAdRequest.goal" type="text" placeholder="Enter your goal here" class="form-control"
+              id="goal" required />
           </div>
           <!-- Platfom -->
           <div class="mb-3">
@@ -89,7 +93,8 @@
                 <div v-for="brand in brands" :key="brand.value" class="brand-button-container">
                   <input type="radio" :id="brand.value" :value="brand.value" v-model="newAdRequest.platform"
                     class="brand-radio" />
-                  <label :for="brand.value" class="btn text-white btn-floating" :style="{ backgroundColor: brand.color }">
+                  <label :for="brand.value" class="btn text-white btn-floating"
+                    :style="{ backgroundColor: brand.color }">
                     <i :class="brand.icon"></i>
                   </label>
                 </div>
@@ -102,8 +107,15 @@
             <label for="payment-amount" class="form-label">Payment Amount</label>
             <div class="input-group w-75">
               <div class="input-group-text">₹</div>
-              <input v-model="newAdRequest.payment_amount" type="number" class="form-control" id="payment-amount" required />
+              <input v-model="newAdRequest.payment_amount" type="number" class="form-control" id="payment-amount"
+                required />
             </div>
+          </div>
+          <!-- List of Requirements in Markdown -->
+          <div class="mb-3">
+            <label for="requirements" class="form-label">Requirements</label>
+            <textarea v-model="newAdRequest.requirements" placeholder="Enter your requirements here"
+              class="form-control" id="requirements" required></textarea>
           </div>
           <button type="submit" class="btn btn-primary">Save</button>
           <button type="button" class="btn btn-secondary" @click="hideCreateAdModal">Cancel</button>
@@ -132,7 +144,6 @@ export default {
   },
   data() {
     return {
-      adRequests: [],
       campaign: {
         name: '',
         description: '',
@@ -140,7 +151,8 @@ export default {
         end_date: '',
         budget: 0,
         isActive: false,
-        progress: 0
+        progress: 0,
+        ads: []
       },
       modalCampaign: {
         name: '',
@@ -153,7 +165,9 @@ export default {
       },
       newAdRequest: {
         platform: 'Facebook',
-        goal: ''
+        goal: '',
+        payment_amount: 0,
+        requirements: ''
       },
       brands: [
         { value: 'Facebook', color: '#3b5998', icon: 'fab fa-xl fa-facebook-f' },
@@ -173,7 +187,6 @@ export default {
   },
   mounted() {
     this.fetchCampaignDetails();
-    this.fetchAdRequests();
   },
   methods: {
     goBack() {
@@ -181,28 +194,6 @@ export default {
     },
     createAdRequest() {
       this.showCreateAdModal();
-    },
-    fetchAdRequests() {
-      const mockAdRequests = [
-        {
-          "ad_id": 103,
-          "goal": "Showcase new features of Samsung S23",
-          "platform": "YouTube",
-          "target_audience": "Tech enthusiasts",
-          "budget": 6000,
-          "status": "active"
-        },
-        {
-          "ad_id": 104,
-          "goal": "Generate pre-orders for Samsung S23",
-          "platform": "Instagram",
-          "target_audience": "18-35 years",
-          "budget": 4000,
-          "status": "pending"
-        }
-      ];
-
-      this.adRequests = mockAdRequests;
     },
     fetchCampaignDetails() {
       const accessToken = localStorage.getItem('accessToken');
@@ -241,8 +232,9 @@ export default {
           this.campaign.budget = data.budget;
           this.campaign.isActive = data.isActive;
           this.campaign.progress = data.progress;
+          this.campaign.ads = data.ads;
           this.modalCampaign = { ...this.campaign };
-          // console.log('Campaign details fetched successfully:', data);
+          console.log('Campaign details fetched successfully:', data);
         })
         .catch(error => console.error(error));
     },
@@ -326,6 +318,76 @@ export default {
         .catch((error) => console.error(error));
       this.hideDeleteModal();
     },
+    postAdRequest() {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        this.$router.push('/register');
+        return;
+      }
+
+      const myHeaders = new Headers();
+      myHeaders.append("Authorization", `Bearer ${accessToken}`);
+      myHeaders.append("Content-Type", "application/json");
+
+      const body = JSON.stringify({
+        campaign_id: this.id,
+        goal: this.newAdRequest.goal,
+        platform: this.newAdRequest.platform,
+        payment_amount: this.newAdRequest.payment_amount,
+        requirements: this.newAdRequest.requirements
+      });
+
+      const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        redirect: "follow",
+        body: body
+      };
+
+      fetch("http://127.0.0.1:8000/api/ad_requests", requestOptions)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json();
+        })
+        .then((result) => {
+          console.log(result, 'Ad request created successfully');
+          this.hideCreateAdModal();
+          this.campaign.ads.push(result);
+          this.newAdRequest = {
+            goal: '',
+            platform: 'Facebook',
+            payment_amount: 0,
+            requirements: ''
+          }
+        })
+        .catch((error) => console.error(error));
+    },
+    deleteAdRequest(adRequestId) {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        this.$router.push('/register');
+        return;
+      }
+
+      const myHeaders = new Headers();
+      myHeaders.append("Authorization", `Bearer ${accessToken}`);
+
+      const requestOptions = {
+        method: "DELETE",
+        headers: myHeaders,
+        redirect: "follow"
+      };
+
+      fetch(`http://127.0.0.1:8000/api/ad-requests/${adRequestId}`, requestOptions)
+        .then((response) => response.text())
+        .then(() => {
+          this.adRequests = this.adRequests.filter(adRequest => adRequest.id !== adRequestId);
+        })
+        .catch((error) => console.error(error));
+
+    }
   }
 }
 </script>
@@ -341,10 +403,6 @@ export default {
   align-items: center;
 }
 
-.ad-requests-container {
-  padding: 2rem;
-}
-
 .brand-button-container {
   display: inline-block;
   margin: 0.5rem;
@@ -354,7 +412,7 @@ export default {
   display: none;
 }
 
-.brand-radio:checked + label {
+.brand-radio:checked+label {
   transform: scale(1.2);
   border: 1px solid #00000070;
 }

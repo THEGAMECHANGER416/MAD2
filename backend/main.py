@@ -49,7 +49,7 @@ api.add_resource(SignupAPI, "/api/signup")
 api.add_resource(LoginAPI, "/api/login")
 api.add_resource(ProfileAPI, "/api/profile")
 api.add_resource(CampaignAPI, '/api/campaigns', '/api/campaigns/<int:campaign_id>')
-api.add_resource(AdRequestAPI, '/ad_requests', '/ad_requests/<int:ad_request_id>')
+api.add_resource(AdRequestAPI, '/api/ad_requests', '/api/ad_requests/<int:ad_request_id>')
 
 @app.errorhandler(404)
 def page_not_found(e):

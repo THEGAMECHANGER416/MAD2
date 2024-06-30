@@ -61,14 +61,11 @@ campaign_parser.add_argument('progress', type=int, required=True)
 ad_request_parser = reqparse.RequestParser()
 ad_request_parser.add_argument('campaign_id', type=int, required=True)
 ad_request_parser.add_argument('influencer_id', type=int, required=False)
-ad_request_parser.add_argument('messages', type=str, required=False)
-ad_request_parser.add_argument('requirements', type=str, required=False)
-ad_request_parser.add_argument('payment_amount', type=float, required=False)
-ad_request_parser.add_argument('status', type=str, required=True)
-ad_request_parser.add_argument('goal', type=str, required=False)
-ad_request_parser.add_argument('platform', type=str, required=False)
-ad_request_parser.add_argument('target_audience', type=str, required=False)
-ad_request_parser.add_argument('budget', type=int, required=False)
+ad_request_parser.add_argument('requirements', type=str, required=True)
+ad_request_parser.add_argument('payment_amount', type=float, required=True)
+ad_request_parser.add_argument('status', type=str, required=False)
+ad_request_parser.add_argument('goal', type=str, required=True)
+ad_request_parser.add_argument('platform', type=str, required=True)
 
 # Resource classes
 class SignupAPI(Resource):
@@ -222,24 +219,59 @@ class ProfileAPI(Resource):
 
 class CampaignAPI(Resource):
     @jwt_required()
-    @marshal_with({
-        'id': fields.Integer,
-        'name': fields.String,
-        'description': fields.String,
-        'start_date': fields.DateTime,
-        'end_date': fields.DateTime,
-        'budget': fields.Integer,
-        'isActive': fields.Boolean,
-        'progress': fields.Integer,
-        'sponsor_id': fields.Integer
-    })
     def get(self, campaign_id=None):
-        if campaign_id:
-            campaign = Campaign.query.get_or_404(campaign_id)
-            return campaign, 200
+        # If campaign_id is None, return all campaigns by the user
+        if campaign_id is None:
+            user_id = get_jwt_identity()
+            user = User.query.get(user_id)
+            if user.role.name == 'Sponsor':
+                campaigns = Campaign.query.filter_by(sponsor_id=user_id).all()
+            elif user.role.name == 'Influencer':
+                campaigns = Campaign.query.filter_by(influencer_id=user_id).all()
+            return [marshal(campaign, {
+                'id': fields.Integer,
+                'name': fields.String,
+                'description': fields.String,
+                'start_date': fields.DateTime,
+                'end_date': fields.DateTime,
+                'budget': fields.Integer,
+                'isActive': fields.Boolean,
+                'progress': fields.Integer,
+                'sponsor_id': fields.Integer
+            }) for campaign in campaigns]
         else:
-            campaigns = Campaign.query.all()
-            return campaigns, 200
+            # Return a single campaign with all the associated ads
+            campaign = Campaign.query.get_or_404(campaign_id)
+            ads = AdRequest.query.filter_by(campaign_id=campaign_id).all()
+            # Add influencer_name to each ad
+            for ad in ads:
+                if ad.influencer_id is not None and ad.influencer_id != 0:
+                    ad.influencer_name = Influencer.query.get(ad.influencer_id).name
+                else:
+                    ad.influencer_name = None
+            campaign.ads = ads
+            return marshal(campaign, {
+                'id': fields.Integer,
+                'name': fields.String,
+                'description': fields.String,
+                'start_date': fields.DateTime,
+                'end_date': fields.DateTime,
+                'budget': fields.Integer,
+                'isActive': fields.Boolean,
+                'progress': fields.Integer,
+                'sponsor_id': fields.Integer,
+                'ads': fields.List(fields.Nested({
+                    'id': fields.Integer,
+                    'campaign_id': fields.Integer,
+                    'influencer_id': fields.Integer,
+                    'requirements': fields.String,
+                    'payment_amount': fields.Float,
+                    'status': fields.String,
+                    'goal': fields.String,
+                    'platform': fields.String,
+                    'influencer_name': fields.String
+                }))
+            })
 
     @jwt_required()
     def post(self):
@@ -354,14 +386,11 @@ class AdRequestAPI(Resource):
         new_ad_request = AdRequest(
             campaign_id=args['campaign_id'],
             influencer_id=args['influencer_id'],
-            messages=args['messages'],
             requirements=args['requirements'],
             payment_amount=args['payment_amount'],
             status=args['status'],
             goal=args['goal'],
-            platform=args['platform'],
-            target_audience=args['target_audience'],
-            budget=args['budget']
+            platform=args['platform']
         )
 
         db.session.add(new_ad_request)
