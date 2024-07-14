@@ -25,7 +25,10 @@
         </router-link>
       </div>
 
-      <!-- Collapsible wrapper -->
+      <!-- Search form -->
+      <div v-if="isLoggedIn" class="d-flex align-items-center me-3">
+        <router-link class="nav-link" to="/search"><span><i class="fas fa-search me-2"></i>Search</span></router-link>
+      </div>
 
       <!-- Avatar -->
       <div v-if="isLoggedIn && user" class="dropdown">

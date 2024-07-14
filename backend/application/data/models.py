@@ -66,4 +66,4 @@ class AdRequest(db.Model):
     platform = db.Column(db.String(100))
     requirements = db.Column(db.Text)
     payment_amount = db.Column(db.Float)
-    status = db.Column(db.Integer,default=0)  # 0 = pending, 1 = approved, 2 = rejected, 3 = completed
+    status = db.Column(db.Integer,default=0)  #0 = created/rejected, 1 = pending, 2 = approved, 3 = completed

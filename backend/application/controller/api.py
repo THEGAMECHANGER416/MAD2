@@ -371,8 +371,17 @@ class AdRequestAPI(Resource):
             ad_request = AdRequest.query.get_or_404(ad_request_id)
             return ad_request, 200
         else:
-            ad_requests = AdRequest.query.all()
-            return ad_requests, 200
+            # get ad requests where user is in influencer id or sponsor id
+            user_id = get_jwt_identity()
+            user = User.query.get(user_id)
+            if user.role.name == 'Sponsor':
+                campaigns = Campaign.query.filter_by(sponsor_id=user_id)
+                ad_requests = []
+                for campaign in campaigns:
+                    ad_requests.extend(AdRequest.query.filter_by(campaign_id=campaign.id))
+            elif user.role.name == 'Influencer':
+                ad_requests = AdRequest.query.filter_by(influencer_id=user_id)
+            return ad_requests
 
     @jwt_required()
     def post(self):
@@ -400,14 +409,11 @@ class AdRequestAPI(Resource):
             'id': fields.Integer,
             'campaign_id': fields.Integer,
             'influencer_id': fields.Integer,
-            'messages': fields.String,
             'requirements': fields.String,
             'payment_amount': fields.Float,
             'status': fields.String,
             'goal': fields.String,
-            'platform': fields.String,
-            'target_audience': fields.String,
-            'budget': fields.Integer
+            'platform': fields.String
         }), 201
 
     @jwt_required()
@@ -417,33 +423,27 @@ class AdRequestAPI(Resource):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
 
-        if user.role.name != 'Sponsor' or ad_request.campaign.sponsor_id != user.sponsor.id:
+        if user.role.name != 'Sponsor' or ad_request.campaign.sponsor_id != user_id:
             return {'message': 'You do not have permission to edit this ad request'}, 403
 
         ad_request.campaign_id = args['campaign_id']
         ad_request.influencer_id = args['influencer_id']
-        ad_request.messages = args['messages']
         ad_request.requirements = args['requirements']
         ad_request.payment_amount = args['payment_amount']
         ad_request.status = args['status']
         ad_request.goal = args['goal']
         ad_request.platform = args['platform']
-        ad_request.target_audience = args['target_audience']
-        ad_request.budget = args['budget']
 
         db.session.commit()
         return marshal(ad_request, {
             'id': fields.Integer,
             'campaign_id': fields.Integer,
             'influencer_id': fields.Integer,
-            'messages': fields.String,
+            'platform': fields.String,
             'requirements': fields.String,
             'payment_amount': fields.Float,
             'status': fields.String,
-            'goal': fields.String,
-            'platform': fields.String,
-            'target_audience': fields.String,
-            'budget': fields.Integer
+            'goal': fields.String
         }), 200
 
     @jwt_required()
@@ -452,7 +452,7 @@ class AdRequestAPI(Resource):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
 
-        if user.role.name != 'Sponsor' or ad_request.campaign.sponsor_id != user.sponsor.id:
+        if user.role.name != 'Sponsor' or ad_request.campaign.sponsor_id != user_id:
             return {'message': 'You do not have permission to delete this ad request'}, 403
 
         db.session.delete(ad_request)

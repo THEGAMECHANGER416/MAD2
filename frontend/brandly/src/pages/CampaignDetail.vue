@@ -25,9 +25,9 @@
     <!-- Arrange ads in nx2 grid -->
     <div class="container-fluid">
       <div class="row justify-content-center gx-2">
-        <AdRequestCard class="col-md-4" v-for="ad in campaign.ads" :key="ad.id" :ad="ad" />
+        <AdRequestCard class="col-md-4" v-for="ad in campaign.ads" :key="ad.id" :ad="ad" deleted="deleted"/>
       </div>
-    </div>
+    </div> 
     
     <CustomModal :show.sync="editModalVisible">
       <template v-slot:header>
@@ -233,6 +233,8 @@ export default {
           this.campaign.isActive = data.isActive;
           this.campaign.progress = data.progress;
           this.campaign.ads = data.ads;
+          // filter ads to get status 0 1 and 2
+          this.campaign.ads = this.campaign.ads.filter(ad => ad.status == 0 || ad.status == 1 || ad.status == 2);
           this.modalCampaign = { ...this.campaign };
           console.log('Campaign details fetched successfully:', data);
         })
@@ -364,29 +366,8 @@ export default {
         })
         .catch((error) => console.error(error));
     },
-    deleteAdRequest(adRequestId) {
-      const accessToken = localStorage.getItem('accessToken');
-      if (!accessToken) {
-        this.$router.push('/register');
-        return;
-      }
-
-      const myHeaders = new Headers();
-      myHeaders.append("Authorization", `Bearer ${accessToken}`);
-
-      const requestOptions = {
-        method: "DELETE",
-        headers: myHeaders,
-        redirect: "follow"
-      };
-
-      fetch(`http://127.0.0.1:8000/api/ad-requests/${adRequestId}`, requestOptions)
-        .then((response) => response.text())
-        .then(() => {
-          this.adRequests = this.adRequests.filter(adRequest => adRequest.id !== adRequestId);
-        })
-        .catch((error) => console.error(error));
-
+    deleted(id) {
+      this.campaign.ads = this.campaign.ads.filter(ad => ad.id !== id);
     }
   }
 }

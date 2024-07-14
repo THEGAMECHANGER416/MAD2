@@ -25,9 +25,20 @@
                 <button @click="showEditModal" class="btn btn-sm btn-primary mr-2"><i class="fas fa-edit"></i>
                     Update</button>
                 <!-- If status is 0, show delete button -->
-                    <button v-if="ad.status === '0'" @click="showDeleteModal" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i>
-                        Delete</button>
+                <button v-if="ad.status == '0'" @click="showDeleteModal" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i>
+                    Delete</button>
+
+                <!-- If status is 1, show approve/decline button -->
+                <button v-if="ad.status == '1'" @click="approveAd" class="btn btn-sm btn-success"><i class="fas fa-check"></i>
+                    Approve</button>
+                <button v-if="ad.status == '1'" @click="declineAd" class="btn btn-sm btn-danger"><i class="fas fa-times"></i>
+                    Decline</button>
+
+                <!-- If status is 2, show completed button -->
+                <button v-if="ad.status == '2'" @click="completeAd" class="btn btn-sm btn-success"><i class="fas fa-check"></i>
+                    Mark as Complete</button>
             </div>
+
         </div>
         <CustomModal :show.sync="showModal">
             <h3 slot="header">Update Ad</h3>
@@ -60,10 +71,12 @@
                 <h5>Delete Ad</h5>
             </template>
             <template v-slot:body>
+                <form @submit.prevent="deleteAd">
                 <h6>Are you sure you want to delete this Ad?</h6>
                 <p>This action can not be undone</p>
                 <button type="button" class="btn btn-secondary" @click="hideDeleteModal">Cancel</button>
-                <button type="button" class="btn btn-danger" @click="deleteAd">Delete</button>
+                <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
             </template>
         </CustomModal>
     </div>
@@ -92,13 +105,172 @@ export default {
             const brand = this.brands.find(b => b.value.toLowerCase() === platform.toLowerCase());
             return brand ? brand.color : '#333'; // Default color if not found
         },
-        editAd(ad) {
-            // Implement edit functionality
-            console.log('Editing ad:', ad);
+        editAd() {
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                this.$router.push('/register');
+                return;
+            }
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", `Bearer ${accessToken}`);
+            myHeaders.append("Content-Type", "application/json");
+
+            const body = JSON.stringify({
+                campaign_id: this.adRequest.campaign_id,
+                goal: this.adRequest.goal,
+                platform: this.adRequest.platform,
+                payment_amount: this.adRequest.payment_amount,
+                requirements: this.adRequest.requirements,
+                status: this.adRequest.status
+            });
+
+            const requestOptions = {
+                method: "PUT",
+                headers: myHeaders,
+                redirect: "follow",
+                body: body
+            };
+
+            fetch(`http://127.0.0.1:8000/api/ad_requests/${this.adRequest.id}`, requestOptions)
+                .then(response => response.text())
+                .then(result => {
+                    console.log(result);
+                    this.hideEditModal();
+                })
+                .catch(error => console.log('error', error));
+
         },
-        deleteAd(ad) {
-            // Implement delete functionality
-            console.log('Deleting ad:', ad);
+        deleteAd() {
+            console.log("Deleting ad: ", this.adRequest.id);
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                this.$router.push('/register');
+                return;
+            }
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", `Bearer ${accessToken}`);
+
+            const requestOptions = {
+                method: "DELETE",
+                headers: myHeaders,
+                redirect: "follow"
+            };
+
+            fetch(`http://127.0.0.1:8000/api/ad_requests/${this.adRequest.id}`, requestOptions)
+                .then(response => response.text())
+                .then(result => {
+                    console.log(result);
+                    this.hideDeleteModal();
+                    this.$emit('deleted', this.adRequest.id);
+                })
+                .catch(error => console.log('error', error));
+        },
+        approveAd() {
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                this.$router.push('/register');
+                return;
+            }
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", `Bearer ${accessToken}`);
+            myHeaders.append("Content-Type", "application/json");
+
+            const body = JSON.stringify({   
+                campaign_id: this.adRequest.campaign_id,
+                goal: this.adRequest.goal,
+                status: '2',
+                payment_amount: this.adRequest.payment_amount,
+                requirements: this.adRequest.requirements,
+                platform: this.adRequest.platform
+            });
+
+            const requestOptions = {
+                method: "PUT",
+                headers: myHeaders,
+                redirect: "follow",
+                body: body
+            };
+
+            fetch(`http://127.0.0.1:8000/api/ad_requests/${this.adRequest.id}`, requestOptions)
+                .then(response => response.text())
+                .then(result => {
+                    console.log(result);
+                    this.adRequest.status = '2';
+                })
+                .catch(error => console.log('error', error));
+        },
+        declineAd() {
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                this.$router.push('/register');
+                return;
+            }
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", `Bearer ${accessToken}`);
+            myHeaders.append("Content-Type", "application/json");
+
+            const body = JSON.stringify({   
+                campaign_id: this.adRequest.campaign_id,
+                goal: this.adRequest.goal,
+                status: '0',
+                payment_amount: this.adRequest.payment_amount,
+                requirements: this.adRequest.requirements,
+                platform: this.adRequest.platform
+            });
+
+            const requestOptions = {
+                method: "PUT",
+                headers: myHeaders,
+                redirect: "follow",
+                body: body
+            };
+
+            fetch(`http://127.0.0.1:8000/api/ad_requests/${this.adRequest.id}`, requestOptions)
+                .then(response => response.text())
+                .then(result => {
+                    console.log(result);
+                    this.adRequest.status = '0';
+                })
+                .catch(error => console.log('error', error));
+        },
+        completeAd() {
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                this.$router.push('/register');
+                return;
+            }
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", `Bearer ${accessToken}`);
+            myHeaders.append("Content-Type", "application/json");
+
+            const body = JSON.stringify({   
+                campaign_id: this.adRequest.campaign_id,
+                goal: this.adRequest.goal,
+                status: '3',
+                payment_amount: this.adRequest.payment_amount,
+                requirements: this.adRequest.requirements,
+                platform: this.adRequest.platform
+            });
+
+            const requestOptions = {
+                method: "PUT",
+                headers: myHeaders,
+                redirect: "follow",
+                body: body
+            };
+
+            fetch(`http://127.0.0.1:8000/api/ad_requests/${this.adRequest.id}`, requestOptions)
+                .then(response => response.text())
+                .then(result => {
+                    console.log(result);
+                    this.adRequest.status = '3';
+                })
+                .catch(error => console.log('error', error));      
         },
         showEditModal() {
             this.showModal = true;

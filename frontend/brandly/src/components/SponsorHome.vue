@@ -14,6 +14,11 @@
         <div class="header-container">
             <h2 class="mx-4 display-6 fw-bold">Your Ad Requests</h2>
         </div>
+
+        <div class="ad-requests-container">
+            <AdRequestCard v-for="adRequest in adRequests" :key=adRequest.id :ad="adRequest" @deleted="deleted"/>
+        </div>
+
         <!-- Modal -->
         <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true"
             ref="exampleModal">
@@ -59,12 +64,14 @@
 </template>
 
 <script>
+import AdRequestCard from './AdRequestCard.vue';
 import CampaignCard from './CampaignCard.vue';
 import { Modal, initMDB } from "mdb-ui-kit";
 
 export default {
     components: {
-        CampaignCard
+        CampaignCard,
+        AdRequestCard
     },
     data() {
         return {
@@ -78,12 +85,14 @@ export default {
                 "isActive": false,
                 "progress": 0
             },
-            modalInstance: null // Add this line
+            modalInstance: null,
+            adRequests: [],
         };
     },
     mounted() {
         this.initMDBSetup();
         this.fetchCampaigns();
+        this.fetchAdRequests();
     },
     methods: {
         initMDBSetup() {
@@ -184,6 +193,42 @@ export default {
         },
         openCampaign(campaignId, campaignName) {
             this.$router.push({ name: 'CampaignDetail', params: { id: campaignId, name: campaignName } });
+        },
+        fetchAdRequests() {
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                this.$router.push('/register');
+                return;
+            }
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", `Bearer ${accessToken}`);
+            myHeaders.append("Content-Type", "application/json");
+
+            const requestOptions = {
+                method: "GET",
+                headers: myHeaders,
+                redirect: "follow"
+            };
+            fetch("http://127.0.0.1:8000/api/ad_requests", requestOptions)
+                .then(response => response.json())
+                .then(data => {
+                    this.adRequests = data;
+                    console.log(data);
+                    if (!this.adRequests) {
+                        this.adRequests = [];
+                    }
+                    else{
+                        this.adRequests = this.adRequests.filter(request => request.status == 1);
+                    }
+                    console.log('Ad requests fetched successfully:', data);
+                })
+                .catch(error => {
+                    console.error('Error fetching ad requests:', error);
+                });
+        },
+        deleted(id){
+            this.adRequests = this.adRequests.filter(request => request.id != id);
         }
     }
 };
@@ -218,6 +263,29 @@ export default {
 }
 
 .campaigns-container::-webkit-scrollbar-thumb:hover {
+    background-color: #b6b6b6;
+}
+.ad-requests-container {
+    display: flex;
+    overflow-x: auto;
+    padding: 1rem;
+}
+
+.ad-requests-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.ad-requests-container::-webkit-scrollbar-track {
+    border-radius: 25px;
+    background-color: #d8d8d8;
+}
+
+.ad-requests-container::-webkit-scrollbar-thumb {
+    background-color: #c4c4c4;
+    border-radius: 10px;
+}
+
+.ad-requests-container::-webkit-scrollbar-thumb:hover {
     background-color: #b6b6b6;
 }
 </style>
