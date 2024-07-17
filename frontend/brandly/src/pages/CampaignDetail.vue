@@ -9,7 +9,7 @@
           <h2 class="mx-4 display-6 fw-bold" style="display: inline-block;">{{ campaign.name }}</h2>
           <p class="mx-4 display-9" style="display: inline-block;">({{ campaign.description }})</p>
         </div>
-        <div class="button-group ms-auto">
+        <div v-if="role == 'Sponsor'" class="button-group ms-auto">
           <button @click="showEditModal" class="btn btn-primary" style="display: inline-block;">
             <i class="fa fa-pencil"></i>
           </button>
@@ -23,11 +23,16 @@
       </div>
     </div>
     <!-- Arrange ads in nx2 grid -->
-    <div class="container-fluid">
+    <div v-if="role=='Sponsor'" class="container-fluid">
       <div class="row justify-content-center gx-2">
         <AdRequestCard class="col-md-4" v-for="ad in campaign.ads" :key="ad.id" :ad="ad" deleted="deleted"/>
       </div>
     </div> 
+    <div v-else-if="role=='Influencer'" class="container-fluid">
+      <div class="row justify-content-center gx-2">
+        <AdsCard class="col-md-4" v-for="ad in filteredAds" :key="ad.id" :ad="ad" />
+      </div>
+    </div>
     
     <CustomModal :show.sync="editModalVisible">
       <template v-slot:header>
@@ -129,11 +134,13 @@
 <script>
 import AdRequestCard from '../components/AdRequestCard.vue';
 import CustomModal from '../components/CustomModal.vue';
+import AdsCard from '../components/AdsCard.vue';
 
 export default {
   name: 'CampaignDetail',
   components: {
     AdRequestCard,
+    AdsCard,
     CustomModal
   },
   props: {
@@ -141,6 +148,22 @@ export default {
       type: Number,
       required: true
     },
+  },
+  computed: {
+    role() {
+      return this.$store.state.role;
+    },
+    user() {
+      return this.$store.state.user;
+    },
+    filteredAds() {
+      if (this.role === 'Influencer') {
+        return this.campaign.ads.filter(ad => ad.status=='0'||ad.influencer_id==this.user.id);
+      }
+      else {
+        return this.campaign.ads
+      }
+    }
   },
   data() {
     return {
@@ -233,8 +256,6 @@ export default {
           this.campaign.isActive = data.isActive;
           this.campaign.progress = data.progress;
           this.campaign.ads = data.ads;
-          // filter ads to get status 0 1 and 2
-          this.campaign.ads = this.campaign.ads.filter(ad => ad.status == 0 || ad.status == 1 || ad.status == 2);
           this.modalCampaign = { ...this.campaign };
           console.log('Campaign details fetched successfully:', data);
         })

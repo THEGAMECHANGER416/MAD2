@@ -13,56 +13,49 @@
                     </span>
                     <p class="card-text mb-0"><strong>Amount:</strong> ${{ ad.payment_amount }}</p>
                 </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <p class="card-text mb-1"><strong>Influencer:</strong> {{ ad.influencer_name || 'N/A' }}</p>
-                </div>
                 <p class="card-text mb-1"><strong>Requirements:</strong> {{ ad.requirements }}</p>
             </div>
 
             <!-- Action Buttons -->
             <div class="d-flex flex-row mt-3">
-                <button v-if="ad.status === '0'" @click="showEditModal" class="btn btn-sm btn-primary mr-2"><i class="fas fa-edit"></i>
-                    Update</button>
-                <!-- If status is 0, show delete button -->
-                <button v-if="ad.status === '0'" @click="showDeleteModal" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt"></i>
-                    Delete</button>
-
-                <!-- If status is 4, show that the ad is under negotiation -->
-                <button @click="showEditModal" v-if="ad.status === '4'" class="btn btn-sm btn-warning"><i class="fas fa-comments"></i> Negotiating</button>
-
-                <!-- If status is 1, show approve/decline button -->
-                <button v-if="ad.status === '1' || ad.status === '4'" @click="approveAd" class="btn btn-sm btn-success"><i class="fas fa-check"></i>
-                    Approve</button>
-                <button v-if="ad.status === '1' || ad.status === '4'" @click="declineAd" class="btn btn-sm btn-danger"><i class="fas fa-times"></i>
-                    Decline</button>
-
+                <!-- If status is 0, show request button -->
+                <button v-if="ad.status == '0'" @click="requestAd" class="btn btn-sm btn-success">
+                    <i class="fas fa-handshake"></i> Request
+                </button>
+                <!-- If status is 1, show negotiate/withdraw button -->
+                <button v-if="ad.status == '1' || ad.status == '4'" @click="showEditModal" class="btn btn-sm btn-warning">
+                    <i class="fas fa-comments"></i> Negotiate
+                </button>
+                <button v-if="ad.status == '1' || ad.status == '4'" @click="showDeleteModal" class="btn btn-sm btn-danger">
+                    <i class="fas fa-times-circle"></i> Withdraw
+                </button>
                 <!-- If status is 2, show completed button -->
-                <button v-if="ad.status === '2'" @click="completeAd" class="btn btn-sm btn-success"><i class="fas fa-check"></i>
-                    Mark as Complete</button>
-
-                <!-- If status is 3, show Complete text in green color-->
-                <p v-if="ad.status === '3'" class="card-text mb-0 text-success"><strong>Ad Complete</strong></p>
+                <button v-if="ad.status == '2'" @click="completeAd" class="btn btn-sm btn-success">
+                    <i class="fas fa-check"></i> Completed
+                </button>
+                <!-- If ststus is 3, show Complete text in green color -->
+                <p v-if="ad.status == '3'" class="card-text mb-0 text-success"><strong>Ad Complete</strong></p> 
 
             </div>
 
         </div>
         <CustomModal :show.sync="showModal">
-            <h3 slot="header">Update Ad</h3>
+            <h3 slot="header">Negotiate</h3>
             <div slot="body">
-                <form @submit.prevent="editAd">
+                <form @submit.prevent="negotiate">
                     <div class="mb-3">
                         <label for="payment_amount" class="form-label">Payment Amount</label>
                         <div class="input-group w-75">
                             <div class="input-group-text">₹</div>
                             <input v-model="adRequest.payment_amount" type="number"
-                                placeholder="Enter your payment amount here" class="form-control" id="payment_amount"
+                                placeholder="Enter your payment amount here" class="form-control" id="payment_amount_2"
                                 required />
                         </div>
                     </div>
                     <div class="mb-3">
                         <label for="requirements" class="form-label">Requirements</label>
                         <textarea v-model="adRequest.requirements" placeholder="Enter your requirements here"
-                            class="form-control" id="requirements" required></textarea>
+                            class="form-control" id="requirements_2" required></textarea>
                     </div>
                     <div class="row">
                         <div class="col-12 text-center mt-1">
@@ -74,14 +67,14 @@
         </CustomModal>
         <CustomModal :show.sync="deleteModalVisible">
             <template v-slot:header>
-                <h5>Delete Ad</h5>
+                <h5>Withdraw Ad</h5>
             </template>
             <template v-slot:body>
-                <form @submit.prevent="deleteAd">
-                <h6>Are you sure you want to delete this Ad?</h6>
+                <form @submit.prevent="withdrawAd">
+                <h6>Are you sure you want to withdraw from this Ad?</h6>
                 <p>This action can not be undone</p>
                 <button type="button" class="btn btn-secondary" @click="hideDeleteModal">Cancel</button>
-                <button type="submit" class="btn btn-danger">Delete</button>
+                <button type="submit" class="btn btn-danger">Withdraw</button>
                 </form>
             </template>
         </CustomModal>
@@ -92,7 +85,7 @@
 import CustomModal from './CustomModal.vue';
 
 export default {
-    name: 'AdRequestCard',
+    name: 'AdsCard',
     props: {
         ad: {
             type: Object,
@@ -101,6 +94,14 @@ export default {
     },
     components: {
         CustomModal
+    },
+    computed: {
+        user() {
+            return this.$store.state.user;
+        },
+        role() {
+            return this.$store.state.role;
+        }
     },
     methods: {
         getPlatformIcon(platform) {
@@ -111,70 +112,8 @@ export default {
             const brand = this.brands.find(b => b.value.toLowerCase() === platform.toLowerCase());
             return brand ? brand.color : '#333'; // Default color if not found
         },
-        editAd() {
-            const accessToken = localStorage.getItem('accessToken');
-            if (!accessToken) {
-                this.$router.push('/register');
-                return;
-            }
-
-            const myHeaders = new Headers();
-            myHeaders.append("Authorization", `Bearer ${accessToken}`);
-            myHeaders.append("Content-Type", "application/json");
-
-            const body = JSON.stringify({
-                campaign_id: this.adRequest.campaign_id,
-                goal: this.adRequest.goal,
-                influencer_id: this.adRequest.influencer_id,
-                platform: this.adRequest.platform,
-                payment_amount: this.adRequest.payment_amount,
-                requirements: this.adRequest.requirements,
-                status: this.adRequest.status
-            });
-
-            const requestOptions = {
-                method: "PUT",
-                headers: myHeaders,
-                redirect: "follow",
-                body: body
-            };
-
-            fetch(`http://127.0.0.1:8000/api/ad_requests/${this.adRequest.id}`, requestOptions)
-                .then(response => response.text())
-                .then(result => {
-                    console.log(result);
-                    this.hideEditModal();
-                })
-                .catch(error => console.log('error', error));
-
-        },
-        deleteAd() {
-            console.log("Deleting ad: ", this.adRequest.id);
-            const accessToken = localStorage.getItem('accessToken');
-            if (!accessToken) {
-                this.$router.push('/register');
-                return;
-            }
-
-            const myHeaders = new Headers();
-            myHeaders.append("Authorization", `Bearer ${accessToken}`);
-
-            const requestOptions = {
-                method: "DELETE",
-                headers: myHeaders,
-                redirect: "follow"
-            };
-
-            fetch(`http://127.0.0.1:8000/api/ad_requests/${this.adRequest.id}`, requestOptions)
-                .then(response => response.text())
-                .then(result => {
-                    console.log(result);
-                    this.hideDeleteModal();
-                    this.$emit('deleted', this.adRequest.id);
-                })
-                .catch(error => console.log('error', error));
-        },
-        approveAd() {
+        requestAd() {
+            console.log(this.user)
             const accessToken = localStorage.getItem('accessToken');
             if (!accessToken) {
                 this.$router.push('/register');
@@ -187,9 +126,9 @@ export default {
 
             const body = JSON.stringify({   
                 campaign_id: this.adRequest.campaign_id,
+                influencer_id: this.user.id,
                 goal: this.adRequest.goal,
-                influencer_id: this.adRequest.influencer_id,
-                status: '2',
+                status: '1',
                 payment_amount: this.adRequest.payment_amount,
                 requirements: this.adRequest.requirements,
                 platform: this.adRequest.platform
@@ -206,11 +145,14 @@ export default {
                 .then(response => response.text())
                 .then(result => {
                     console.log(result);
-                    this.adRequest.status = '2';
+                    this.adRequest.status = '1';
+                    this.adRequest.influencer_id = this.user.id;
+                    this.adRequest.influencer_name = this.user.influencer.name;
+                    console.log(this.adRequest);
                 })
                 .catch(error => console.log('error', error));
         },
-        declineAd() {
+        withdrawAd() {
             const accessToken = localStorage.getItem('accessToken');
             if (!accessToken) {
                 this.$router.push('/register');
@@ -224,6 +166,7 @@ export default {
             const body = JSON.stringify({   
                 campaign_id: this.adRequest.campaign_id,
                 goal: this.adRequest.goal,
+                influencer_id: null,
                 status: '0',
                 payment_amount: this.adRequest.payment_amount,
                 requirements: this.adRequest.requirements,
@@ -242,10 +185,13 @@ export default {
                 .then(result => {
                     console.log(result);
                     this.adRequest.status = '0';
+                    this.adRequest.influencer_id = null;
+                    this.adRequest.influencer_name = null;
+                    this.hideDeleteModal();
                 })
                 .catch(error => console.log('error', error));
         },
-        completeAd() {
+        negotiate() {
             const accessToken = localStorage.getItem('accessToken');
             if (!accessToken) {
                 this.$router.push('/register');
@@ -259,8 +205,8 @@ export default {
             const body = JSON.stringify({   
                 campaign_id: this.adRequest.campaign_id,
                 goal: this.adRequest.goal,
-                influencer_id: this.adRequest.influencer_id,
-                status: '3',
+                influencer_id: this.user.id,
+                status: '4',
                 payment_amount: this.adRequest.payment_amount,
                 requirements: this.adRequest.requirements,
                 platform: this.adRequest.platform
@@ -277,7 +223,11 @@ export default {
                 .then(response => response.text())
                 .then(result => {
                     console.log(result);
-                    this.adRequest.status = '3';
+                    this.adRequest.status = '4';
+                    this.adRequest.influencer_id = this.user.id;
+                    this.adRequest.influencer_name = this.user.influencer.name;
+                    this.hideEditModal();
+                    console.log(this.adRequest);
                 })
                 .catch(error => console.log('error', error));      
         },
@@ -330,6 +280,6 @@ export default {
 }
 
 .btn {
-    padding: 0.35rem 0.7rem;
+    padding: 0.55rem 1.5rem;
 }
 </style>

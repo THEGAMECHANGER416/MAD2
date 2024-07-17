@@ -53,7 +53,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .campaign-card {
     margin: 0.5rem;
     padding: 0.5rem;

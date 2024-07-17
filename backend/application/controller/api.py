@@ -246,7 +246,7 @@ class CampaignAPI(Resource):
             # Add influencer_name to each ad
             for ad in ads:
                 if ad.influencer_id is not None and ad.influencer_id != 0:
-                    ad.influencer_name = Influencer.query.get(ad.influencer_id).name
+                    ad.influencer_name = Influencer.query.filter_by(user_id=ad.influencer_id).first().name
                 else:
                     ad.influencer_name = None
             campaign.ads = ads
@@ -423,7 +423,7 @@ class AdRequestAPI(Resource):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
 
-        if user.role.name != 'Sponsor' or ad_request.campaign.sponsor_id != user_id:
+        if user.role.name == 'Sponsor' and ad_request.campaign.sponsor_id != user_id:
             return {'message': 'You do not have permission to edit this ad request'}, 403
 
         ad_request.campaign_id = args['campaign_id']
@@ -458,3 +458,33 @@ class AdRequestAPI(Resource):
         db.session.delete(ad_request)
         db.session.commit()
         return '', 204
+
+class SearchAPI(Resource):
+    @jwt_required()
+    def get(self):
+        query = request.args.get('q')
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        results = []
+        if user.role.name == 'Sponsor':
+            influencers = Influencer.query.filter(Influencer.name.like(f'%{query}%'))
+            return [marshal(result, {
+                'id': fields.Integer,
+                'name': fields.String,
+                'category': fields.String,
+                'niche': fields.String,
+                'reach': fields.Integer
+            }) for result in influencers], 201
+        elif user.role.name == 'Influencer':
+            campaigns = Campaign.query.filter(Campaign.name.like(f'%{query}%'))
+            return [marshal(result, {
+                'id': fields.Integer,
+                'name': fields.String,
+                'description': fields.String,
+                'start_date': fields.DateTime,
+                'end_date': fields.DateTime,
+                'budget': fields.Integer,
+                'isActive': fields.Boolean,
+                'progress': fields.Integer
+            }) for result in campaigns], 201
+        return results

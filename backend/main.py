@@ -44,12 +44,13 @@ jwt = JWTManager(app)
 from application.controller.controllers import *
 
 # Importing all APIs
-from application.controller.api import SignupAPI, LoginAPI, ProfileAPI, CampaignAPI, AdRequestAPI
+from application.controller.api import SignupAPI, LoginAPI, ProfileAPI, CampaignAPI, AdRequestAPI, SearchAPI
 api.add_resource(SignupAPI, "/api/signup")
 api.add_resource(LoginAPI, "/api/login")
 api.add_resource(ProfileAPI, "/api/profile")
 api.add_resource(CampaignAPI, '/api/campaigns', '/api/campaigns/<int:campaign_id>')
 api.add_resource(AdRequestAPI, '/api/ad_requests', '/api/ad_requests/<int:ad_request_id>')
+api.add_resource(SearchAPI, '/api/search')
 
 @app.errorhandler(404)
 def page_not_found(e):
