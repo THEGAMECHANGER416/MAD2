@@ -13,3 +13,5 @@ class LocalDevelopmentConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(SQLITE_DB_DIR, "testdb.sqlite3")
     DEBUG = True
     SECRET_KEY =  "ash ah secet"
+    UPLOAD_FOLDER = os.path.join(basedir, 'uploads')
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'avif'}

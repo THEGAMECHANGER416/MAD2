@@ -37,11 +37,19 @@ class Influencer(db.Model):
     __tablename__ = 'influencer'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'),nullable=False,unique=True)
+    image = db.Column(db.String(100), nullable=True) # upload image
     name = db.Column(db.String(100))
     category = db.Column(db.String(100))
     niche = db.Column(db.String(100))
     reach = db.Column(db.Integer)
     ad_requests = db.relationship('AdRequest', backref='influencer',lazy=True)
+
+    @property
+    def full_image_url(self):
+        if self.image_url:
+            # Assuming your images are served from a static location or CDN
+            return f"http://127.0.0.1:8000/{self.image_url}"
+        return None
 
 class Campaign(db.Model):
     __tablename__ = 'campaign'

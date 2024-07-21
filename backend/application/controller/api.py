@@ -10,7 +10,10 @@ from flask import Flask, request, jsonify, abort
 from flask_restful import Api, Resource, reqparse, fields, marshal_with
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
+import werkzeug
 import datetime
+from werkzeug.utils import secure_filename
+import os
 
 # Signup parsers
 signup_parser = reqparse.RequestParser()
@@ -35,6 +38,7 @@ sponsor_fields = {
 
 influencer_fields = {
     'name': fields.String,
+    'image': fields.String,
     'category': fields.String,
     'niche': fields.String,
     'reach': fields.Integer
@@ -150,6 +154,7 @@ update_profile_parser.add_argument('email', type=str, required=False)
 update_profile_parser.add_argument('password', type=str, required=False)
 update_profile_parser.add_argument('companyName', type=str, required=False)
 update_profile_parser.add_argument('industry', type=str, required=False)
+update_profile_parser.add_argument('image', type=werkzeug.datastructures.FileStorage, location='files')
 update_profile_parser.add_argument('budget', type=int, required=False)
 update_profile_parser.add_argument('name', type=str, required=False)
 update_profile_parser.add_argument('category', type=str, required=False)
@@ -179,45 +184,68 @@ class ProfileAPI(Resource):
         
         if not user:
             return {'message': 'User not found'}, 404
-        
-        args = update_profile_parser.parse_args()
 
-        if args['email']:
+        # Parse JSON data if present
+        json_data = request.form.get('data')
+        if json_data:
+            args = json.loads(json_data)
+        else:
+            args = {}
+
+        # Parse form data for file upload
+        image_file = request.files.get('image')
+        if image_file:
+            args['image'] = image_file
+
+        # Update user email and password if provided
+        if args.get('email'):
             user.email = args['email']
-        
-        if args['password']:
+        if args.get('password'):
             user.set_password(args['password'])
 
+        # Handle specific fields based on role
         if user.role.name == 'Sponsor':
             sponsor = Sponsor.query.filter_by(user_id=user.id).first()
             if sponsor:
-                if args['companyName']:
+                if args.get('companyName'):
                     sponsor.companyName = args['companyName']
-                if args['industry']:
+                if args.get('industry'):
                     sponsor.industry = args['industry']
-                if args['budget'] is not None:
+                if args.get('budget') is not None:
                     sponsor.budget = args['budget']
         elif user.role.name == 'Influencer':
             influencer = Influencer.query.filter_by(user_id=user.id).first()
             if influencer:
-                if args['name']:
+                if args.get('name'):
                     influencer.name = args['name']
-                if args['category']:
+                if args.get('category'):
                     influencer.category = args['category']
-                if args['niche']:
+                if args.get('niche'):
                     influencer.niche = args['niche']
-                if args['reach'] is not None:
+                if args.get('reach') is not None:
                     influencer.reach = args['reach']
 
+                # Handle image upload
+                if image_file:
+                    filename = secure_filename(image_file.filename)
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    image_file.save(file_path)
+                    print(file_path)
+                    influencer.image = '/uploads/' + filename  # Save image path to database
+                    print(influencer.image)
+
         db.session.commit()
+
+        # Fetch the updated user and related fields to return
+        updated_user = User.query.get(user_id)
         if user.role.name == 'Sponsor':
-            user.sponsor = Sponsor.query.filter_by(user_id=user.id).first()
-
+            updated_user.sponsor = Sponsor.query.filter_by(user_id=user.id).first()
         elif user.role.name == 'Influencer':
-            user.influencer = Influencer.query.filter_by(user_id=user.id).first()
-        return user, 200
-
+            updated_user.influencer = Influencer.query.filter_by(user_id=user.id).first()
+            
+        return updated_user, 200
 class CampaignAPI(Resource):
+
     @jwt_required()
     def get(self, campaign_id=None):
         # If campaign_id is None, return all campaigns by the user
@@ -468,9 +496,11 @@ class SearchAPI(Resource):
         results = []
         if user.role.name == 'Sponsor':
             influencers = Influencer.query.filter(Influencer.name.like(f'%{query}%'))
+            print(influencers)
             return [marshal(result, {
                 'id': fields.Integer,
                 'name': fields.String,
+                'image': fields.String,
                 'category': fields.String,
                 'niche': fields.String,
                 'reach': fields.Integer

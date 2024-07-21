@@ -1,19 +1,30 @@
 <template>
     <section class="intro">
-        <div class="mask d-flex align-items-center h-100 gradient-custom">
-            <div class="container mt-5">
+        <div class="mask d-flex align-items-center justify-content-center gradient-custom">
+            <div class="container" style="margin-top: 4em;">
                 <div class="row justify-content-center">
                     <div class="col-12 col-lg-9 col-xl-7">
-                        <div class="mb-3">
-                            <span @click="goBack" class="back-button">
+                        <div class="mb-4 d-flex flex-row justify-content-center">
+                            <span @click="goBack" style="cursor: pointer; color: #1a1a1a; text-decoration: none; font-size: 1.2em; font-weight: 400; box-shadow: none;">
                                 <i class="fas fa-arrow-left"></i> Back
                             </span>
+                            <div style="flex-grow: 1; display: flex; justify-content: center; margin-left: auto; margin-right: 4em;">
+                                <h3 style="margin-bottom: 0; padding-bottom: 0;">Edit Profile</h3>
+                            </div>
                         </div>
                         <div class="card">
-                            <div class="card-body p-4 p-md-5">
-                                <h3 class="mb-4 pb-2">Edit Profile</h3>
-                                <div v-if="message" class="alert alert-success">{{ message }}</div>
+                            <div class="card-body px-4 py-4 px-md-5">
                                 <form @submit.prevent="handleSubmit">
+                                    <!-- Show profile image if exists -->
+                                    <div v-if="role==='Influencer' && this.formData.image" class="text-center mb-0">
+                                        <img :src="imagePreview || 'http://localhost:8000' + this.formData.image" alt="Profile Image" style="width: 150px; height: 150px; object-fit: cover;" class="img-fluid rounded-circle" />
+                                    </div>
+                                    <!-- Image upload for influencer -->
+                                    <div v-if="role==='Influencer'" class="row mb-4 ms-0 me-0 mt-0">
+                                        <label for="image" class="form-label">Profile Image</label>
+                                        <input type="file" @change="handleFileUpload" class="form-control" />
+                                    </div>
+                                    
                                     <div class="row mb-4">
                                         <div class="col-md-12">
                                             <div class="form-outline">
@@ -76,9 +87,10 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div v-if="message" class="alert p-0 m-0 text-success">{{ message }}</div>
                                     
                                     <div class="row">
-                                        <div class="col-12 text-center mt-4">
+                                        <div class="col-12 text-center mt-1">
                                             <input class="btn btn-warning btn-lg" type="submit" value="Submit" />
                                         </div>
                                     </div>
@@ -138,9 +150,12 @@ export default {
                 name: '',
                 category: '',
                 niche: '',
-                reach: null
+                reach: null,
+                image: ''
             },
-            message : '',
+            message: '',
+            fileName: '',
+            imagePreview: null,
         }
     },
     methods: {
@@ -158,15 +173,28 @@ export default {
         initFormData() {
             if (this.role === 'Sponsor') {
                 this.formData.email = this.user.email || '';
-                this.formData.companyName = this.user.sponsor.companyName || '';
+                this.formData.companyName = this.user.sponsor?.companyName || '';
                 this.formData.industry = this.user.sponsor?.industry || '';
                 this.formData.budget = this.user.sponsor?.budget || null;
             } else {
                 this.formData.email = this.user.email || '';
+                this.formData.image = this.user.influencer?.image || '';
                 this.formData.name = this.user.influencer?.name || '';
                 this.formData.category = this.user.influencer?.category || '';
                 this.formData.niche = this.user.influencer?.niche || '';
                 this.formData.reach = this.user.influencer?.reach || null;
+            }
+        },
+        handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.fileName = file.name;  // Set the filename property
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    this.imagePreview = reader.result; // Base64 string of the image
+                    this.formData.image = file; // Store the file itself
+                };
+                reader.readAsDataURL(file);
             }
         },
         fetchUserDetails() {
@@ -207,40 +235,57 @@ export default {
         },
         handleSubmit() {
             try {
-            const accessToken = localStorage.getItem('accessToken');
-            if (!accessToken) {
-                this.$router.push('/register');
+                const accessToken = localStorage.getItem('accessToken');
+                if (!accessToken) {
+                    this.$router.push('/register');
+                    return;
+                }
+
+                const formData = new FormData();
+
+                if (this.formData.image) {
+                    formData.append('image', this.formData.image);
+                }
+
+                if (this.role === 'Sponsor') {
+                    formData.append('companyName', this.formData.companyName);
+                    formData.append('industry', this.formData.industry);
+                    formData.append('budget', this.formData.budget);
+                } else {
+                    formData.append('name', this.formData.name);
+                    formData.append('category', this.formData.category);
+                    formData.append('niche', this.formData.niche);
+                    formData.append('reach', this.formData.reach);
+                }
+
+                const myHeaders = new Headers();
+                myHeaders.append("Authorization", `Bearer ${accessToken}`);
+
+                const requestOptions = {
+                    method: "PUT",
+                    headers: myHeaders,
+                    body: formData,
+                    redirect: "follow"
+                };
+
+                fetch("http://127.0.0.1:8000/api/profile", requestOptions)
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error("Network response was not ok");
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        console.log('Profile updated successfully', data);
+                        this.$store.dispatch("updateUser", data);
+                        this.message = "Profile Updated Successfully";
+                    })
+                    .catch((error) => {
+                        console.error('Error updating profile:', error.message);
+                    });
+            } catch (error) {
+                console.error('Error submitting form:', error.message);
             }
-
-            const myHeaders = new Headers();
-            myHeaders.append("Authorization", `Bearer ${accessToken}`);
-            myHeaders.append("Content-Type", "application/json");
-
-            const requestOptions = {
-                method: "PUT",
-                headers: myHeaders,
-                body: JSON.stringify(this.formData),
-                redirect: "follow"
-            };
-
-            fetch("http://127.0.0.1:8000/api/profile", requestOptions)
-                .then((response) => {
-                    if (!response.ok) {
-                        throw new Error("Network response was not ok");
-                    }
-                    return response.json();
-                })
-                .then((data) => {
-                    console.log('Profile updated successfully', data);
-                    this.$store.dispatch("updateUser", data);
-                    this.message = "Profile Updated Successfully"
-                })
-                .catch((error) => {
-                    console.error('Error updating profile:', error.message);
-                });
-        } catch (error) {
-            console.error('Error submitting form:', error.message);
-        }
         },
         goBack() {
             this.$router.back();
@@ -249,7 +294,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .intro {
     height: 100%;
 }

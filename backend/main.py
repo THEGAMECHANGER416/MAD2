@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from flask_restful import Resource, Api
 from flask_cors import CORS
 from application import config
@@ -39,6 +39,10 @@ def create_app():
 
 app, api = create_app()
 jwt = JWTManager(app)
+
+@app.route('/uploads/<filename>')
+def serve_file(filename):
+    return send_from_directory('application/uploads', filename)
 
 # Import all the controllers so they are loaded
 from application.controller.controllers import *
