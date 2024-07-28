@@ -26,13 +26,14 @@
                 <button v-if="ad.status == '1' || ad.status == '4'" @click="showEditModal" class="btn btn-sm btn-warning">
                     <i class="fas fa-comments"></i> Negotiate
                 </button>
-                <button v-if="ad.status == '1' || ad.status == '4'" @click="showDeleteModal" class="btn btn-sm btn-danger">
+                <button v-if="ad.status == '1' || ad.status == '2' || ad.status == '4'" @click="showDeleteModal" class="btn btn-sm btn-danger">
                     <i class="fas fa-times-circle"></i> Withdraw
                 </button>
-                <!-- If status is 2, show completed button -->
+                <!-- If status is 2, show completed and withdraw button -->
                 <button v-if="ad.status == '2'" @click="completeAd" class="btn btn-sm btn-success">
                     <i class="fas fa-check"></i> Completed
                 </button>
+
                 <!-- If ststus is 3, show Complete text in green color -->
                 <p v-if="ad.status == '3'" class="card-text mb-0 text-success"><strong>Ad Complete</strong></p> 
 
@@ -127,6 +128,7 @@ export default {
             const body = JSON.stringify({   
                 campaign_id: this.adRequest.campaign_id,
                 influencer_id: this.user.id,
+                influencer_name: this.user.influencer.name,
                 goal: this.adRequest.goal,
                 status: '1',
                 payment_amount: this.adRequest.payment_amount,
@@ -230,6 +232,42 @@ export default {
                     console.log(this.adRequest);
                 })
                 .catch(error => console.log('error', error));      
+        },
+        completeAd() {
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                this.$router.push('/register');
+                return;
+            }
+
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", `Bearer ${accessToken}`);
+            myHeaders.append("Content-Type", "application/json");
+
+            const body = JSON.stringify({
+                campaign_id: this.adRequest.campaign_id,
+                goal: this.adRequest.goal,
+                status: '3',
+                payment_amount: this.adRequest.payment_amount,
+                requirements: this.adRequest.requirements,
+                platform: this.adRequest.platform
+            });
+
+            const requestOptions = {
+                method: "PUT",
+                headers: myHeaders,
+                redirect: "follow",
+                body: body
+            };
+
+            fetch(`http://127.0.0.1:8000/api/ad_requests/${this.adRequest.id}`, requestOptions)
+                .then(response => response.text())
+                .then(result => {
+                    console.log(result);
+                    this.adRequest.status = '3';
+                    this.hideEditModal();
+                })
+                .catch(error => console.log('error', error));
         },
         showEditModal() {
             this.showModal = true;

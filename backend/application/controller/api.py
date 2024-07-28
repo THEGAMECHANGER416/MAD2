@@ -255,7 +255,8 @@ class CampaignAPI(Resource):
             if user.role.name == 'Sponsor':
                 campaigns = Campaign.query.filter_by(sponsor_id=user_id).all()
             elif user.role.name == 'Influencer':
-                campaigns = Campaign.query.filter_by(influencer_id=user_id).all()
+                # Fetch recently created campaigns
+                campaigns = Campaign.query.order_by(Campaign.id.desc()).all()
             return [marshal(campaign, {
                 'id': fields.Integer,
                 'name': fields.String,
@@ -385,6 +386,7 @@ class AdRequestAPI(Resource):
         'id': fields.Integer,
         'campaign_id': fields.Integer,
         'influencer_id': fields.Integer,
+        'influencer_name': fields.String,
         'messages': fields.String,
         'requirements': fields.String,
         'payment_amount': fields.Float,
@@ -408,7 +410,10 @@ class AdRequestAPI(Resource):
                 for campaign in campaigns:
                     ad_requests.extend(AdRequest.query.filter_by(campaign_id=campaign.id))
             elif user.role.name == 'Influencer':
-                ad_requests = AdRequest.query.filter_by(influencer_id=user_id)
+                ad_requests = AdRequest.query.filter_by(influencer_id=user_id).all()
+            # Add influencer_name field to each ad_request
+            for ad_request in ad_requests:
+                ad_request.influencer_name = Influencer.query.get(ad_request.influencer_id).name
             return ad_requests
 
     @jwt_required()

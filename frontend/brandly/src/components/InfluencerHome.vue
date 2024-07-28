@@ -1,10 +1,7 @@
 <template>
     <div>
         <div class="header-container">
-            <h2 class="mx-4 display-6 fw-bold">Your Campaigns</h2>
-            <button type="button" class="btn btn-primary" @click="showModal">
-                Create Campaign
-            </button>
+            <h2 class="mx-4 display-6 fw-bold">Top Campaigns</h2>
         </div>
         <div v-if="campaigns.length > 0" class="campaigns-container">
             <CampaignCard v-for="campaign in campaigns" :key=campaign.id :campaign="campaign"
@@ -12,112 +9,43 @@
         </div>
 
         <div v-else class="campaigns-container ms-4">
-            <h5 class="text-warning">No Active Campaigns! Please create one!</h5>
+            <h5 class="text-warning">Sorry but there are no active campaigns!</h5>
         </div>
 
         <div class="header-container">
-            <h2 class="mx-4 display-6 fw-bold">Ad Request Updates</h2>
+            <h2 class="mx-4 display-6 fw-bold">Your Ad Requests</h2>
         </div>
 
         <div v-if="adRequests.length > 0" class="ad-requests-container">
-            <AdRequestCard v-for="adRequest in adRequests" :key=adRequest.id :ad="adRequest" @deleted="deleted"/>
+            <AdsCard v-for="adRequest in adRequests" :key=adRequest.id :ad="adRequest"/>
         </div>
 
         <div v-else class="ad-requests-container ms-4">
             <h5 class="text-success">No Updates as of now. Have a great day!</h5>
-        </div>
-
-        <!-- Modal -->
-        <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true"
-            ref="exampleModal">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="exampleModalLabel">Add New Campaign</h5>
-                        <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form @submit.prevent="saveCampaign">
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Name</label>
-                                <input v-model="campaign.name" type="text" class="form-control" id="name" required />
-                            </div>
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Description</label>
-                                <textarea v-model="campaign.description" class="form-control" id="description"
-                                    required></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="start_date" class="form-label">Start Date</label>
-                                <input v-model="campaign.start_date" type="date" class="form-control" id="start_date"
-                                    required />
-                            </div>
-                            <div class="mb-3">
-                                <label for="end_date" class="form-label">End Date</label>
-                                <input v-model="campaign.end_date" type="date" class="form-control" id="end_date"
-                                    required />
-                            </div>
-                            <div class="mb-3">
-                                <label for="budget" class="form-label">Budget</label>
-                                <input v-model="campaign.budget" type="number" class="form-control" id="budget"
-                                    required />
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </div>  
     </div>
 </template>
 
 <script>
-import AdRequestCard from './AdRequestCard.vue';
+import AdsCard from './AdsCard.vue';
 import CampaignCard from './CampaignCard.vue';
-import { Modal, initMDB } from "mdb-ui-kit";
 
 export default {
     components: {
         CampaignCard,
-        AdRequestCard
+        AdsCard
     },
     data() {
         return {
             campaigns: [],
-            campaign: {
-                "name": '',
-                "description": '',
-                "start_date": '',
-                "end_date": '',
-                "budget": 0,
-                "isActive": false,
-                "progress": 0
-            },
-            modalInstance: null,
             adRequests: [],
         };
     },
     mounted() {
-        this.initMDBSetup();
         this.fetchCampaigns();
         this.fetchAdRequests();
     },
     methods: {
-        initMDBSetup() {
-            initMDB({ Modal });
-            this.modalInstance = new Modal(this.$refs.exampleModal, {});
-        },
-        showModal() {
-            if (!this.modalInstance) {
-                this.modalInstance = new Modal(this.$refs.exampleModal, {});
-            }
-            this.modalInstance.show();
-        },
-        hideModal() {
-            if (this.modalInstance) {
-                this.modalInstance.hide();
-            }
-        },
         fetchCampaigns() {
             const url = "http://127.0.0.1:8000/api/campaigns"; // Replace with your actual API endpoint
 
@@ -222,21 +150,17 @@ export default {
                 .then(response => response.json())
                 .then(data => {
                     this.adRequests = data;
-                    console.log(data);
+                    console.log('Ad requests fetched successfully:', data);
                     if (!this.adRequests) {
                         this.adRequests = [];
                     }
-                    else{
-                        this.adRequests = this.adRequests.filter(request => request.status == 1 || request.status == 4);
-                    }
-                    console.log('Ad requests fetched successfully:', data);
+                    else {
+                        this.adRequests = this.adRequests.filter(request => request.status == 2);
+                    }      
                 })
                 .catch(error => {
                     console.error('Error fetching ad requests:', error);
                 });
-        },
-        deleted(id){
-            this.adRequests = this.adRequests.filter(request => request.id != id);
         }
     }
 };

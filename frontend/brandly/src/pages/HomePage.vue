@@ -1,7 +1,9 @@
 <template>
   <div class="mb-0 container-fluid wrapper-class">
     <div v-if="user">
-      <div v-if="role === 'Influencer'">Role: Influencer</div>
+      <div v-if="role === 'Influencer'">
+        <InfluencerHome />
+      </div>
       <div v-else-if="role === 'Sponsor'">
         <SponsorHome />
       </div>
@@ -15,11 +17,13 @@
 
 <script>
 import SponsorHome from '../components/SponsorHome.vue';
+import InfluencerHome from '../components/InfluencerHome.vue';
 
 export default {
   name: 'HomePage',
   components:{
-    SponsorHome
+    SponsorHome,
+    InfluencerHome
   },
   computed: {
     user() {
