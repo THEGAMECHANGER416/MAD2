@@ -413,7 +413,7 @@ class AdRequestAPI(Resource):
                 ad_requests = AdRequest.query.filter_by(influencer_id=user_id).all()
             # Add influencer_name field to each ad_request
             for ad_request in ad_requests:
-                ad_request.influencer_name = Influencer.query.get(ad_request.influencer_id).name
+                ad_request.influencer_name = Influencer.query.filter_by(user_id=ad_request.influencer_id).first().name
             return ad_requests
 
     @jwt_required()

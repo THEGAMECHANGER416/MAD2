@@ -14,6 +14,7 @@ from create_roles import create_roles
 from flask_security import utils
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
+from celery.schedules import crontab
 import os
 from flask_sse import sse
 load_dotenv()
@@ -45,7 +46,8 @@ def create_app():
     celery.conf.update(
         broker_url=app.config['CELERY_BROKER_URL'],
         result_backend=app.config['CELERY_RESULT_BACKEND'],
-        broker_connection_retry_on_startup=True
+        broker_connection_retry_on_startup=True,
+        timezone='Asia/Kolkata',
     )
     celery.Task = worker.ContextTask
     db.create_all()

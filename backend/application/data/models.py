@@ -1,6 +1,18 @@
 from .database import db
 from flask_security import UserMixin, RoleMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
+
+class RequestLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, nullable=False, default=db.func.now())
+    endpoint = db.Column(db.String(255), nullable=False)
+    method = db.Column(db.String(10), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    user = db.relationship('User', backref='requests')
+
+    def __repr__(self):
+        return f'<RequestLog {self.id}>'
 
 class Role(db.Model):
     __tablename__ = 'role'
@@ -64,6 +76,8 @@ class Campaign(db.Model):
 
     sponsor_id = db.Column(db.Integer, db.ForeignKey('sponsor.id'),nullable=False)
     ads = db.relationship('AdRequest', backref='campaign',lazy=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
 class AdRequest(db.Model):
     __tablename__ = 'ad_request'
@@ -75,3 +89,5 @@ class AdRequest(db.Model):
     requirements = db.Column(db.Text)
     payment_amount = db.Column(db.Float)
     status = db.Column(db.Integer,default=0)  #0 = created/rejected, 1 = pending, 2 = approved, 3 = completed, 4 = updated
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
