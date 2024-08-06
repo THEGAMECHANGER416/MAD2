@@ -2,7 +2,8 @@
     <div class="influencer-card">
         <div class="d-flex flex-column align-items-center justify-content-between">
             <div class="d-flex flex-row align-items-top justify-content-between">
-                <img :src="'http://localhost:8000' + influencer.image" alt="Influencer" class="mb-3 me-4" style="width: 100px; height: 100px; object-fit: cover;" />
+                <img v-if="influencer.image" :src="'http://localhost:8000' + influencer.image" alt="Influencer" class="mb-3 me-4" style="width: 100px; height: 100px; object-fit: cover;" />
+                <img v-else src="../assets/img/avatar.svg" alt="Influencer" class="mb-3 me-4" style="width: 100px; height: 100px; object-fit: cover;" />
                 <div class="d-flex flex-column flex-grow-1 ms-3">
                     <h3 class="card-title mb-1">{{ influencer.name }}</h3>
                     <p class="card-text mb-0"><strong>Category:</strong> {{ influencer.category }}</p>

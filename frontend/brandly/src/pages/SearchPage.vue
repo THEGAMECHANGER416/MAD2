@@ -1,5 +1,5 @@
 <template>
-    <div class="container-fluid mb-0 d-flex wrapper-class flex-column align-items-center"
+    <div class="container-fluid mb-0 d-flex flex-column align-items-center wrapper-class"
         style="background: linear-gradient(15deg, #5c180f, #7e1a12, #a31a1b, #c51e22) !important;">
         <div class="mt-5">
             <div v-if="user">
@@ -8,6 +8,9 @@
                 </div>
                 <div v-else-if="role === 'Sponsor'">
                     <h1 class="mb-0 display-6 fw-bold text-white">Search for Influencers</h1>
+                </div>
+                <div v-else-if="role === 'Admin'">
+                    <h1 class="mb-0 display-6 fw-bold text-white">Search for Ad Campaigns</h1>
                 </div>
                 <div class="card mt-3 w-100"
                     style="border-radius: 10em; background: transparent; border: 2px solid white;">
@@ -29,6 +32,10 @@
                 <div class="mt-3 influencers-container" v-else-if="role === 'Sponsor' && results.length > 0">
                     <InfluencerCard v-for="influencer in results" :key="influencer.id" :influencer="influencer"
                         @sendRequest="sendRequest" />
+                </div>
+                <div class="mt-3 admins-container" v-else-if="role === 'Admin' && results.length > 0">
+                    <AdminCard v-for="campaign in results" :key="campaign.id" :campaign="campaign"
+                        @open-campaign="openCampaign" />
                 </div>
                 <div class="mt-3" v-else-if="results.length === 0">
                     <p class="text-white">No results found</p>
@@ -72,22 +79,22 @@
                 </div>
             </template>
         </CustomModal>
-
     </div>
 </template>
-
 
 <script>
 import CampaignCard from '@/components/CampaignCard.vue';
 import CustomModal from '@/components/CustomModal.vue';
 import InfluencerCard from '@/components/InfluencerCard.vue';
+import AdminCard from '@/components/AdminCard.vue';
 
 export default {
     name: 'SearchPage',
     components: {
         CampaignCard,
         InfluencerCard,
-        CustomModal
+        CustomModal,
+        AdminCard
     },
     computed: {
         user() {
@@ -249,7 +256,9 @@ export default {
 <style scoped>
 .wrapper-class {
     margin-top: 3.6em;
-    height: calc(100vh - 3.6em);
+    /* Adjust height to allow scrolling on the entire page */
+    min-height: calc(100vh - 3.6em);
+    overflow-y: auto;
 }
 
 .form-control {
@@ -267,17 +276,12 @@ export default {
     /* Ensure placeholder is fully visible */
 }
 
-.campaigns-container {
+.campaigns-container,
+.influencers-container,
+.admins-container {
     display: flex;
     flex-wrap: wrap;
-    overflow-y: auto;
-    height: 100%;
-}
-
-.influencers-container {
-    display: flex;
-    flex-wrap: wrap;
-    overflow-y: auto;
-    height: 100%;
+    /* Remove specific height and overflow properties */
+    margin-bottom: 1rem;
 }
 </style>

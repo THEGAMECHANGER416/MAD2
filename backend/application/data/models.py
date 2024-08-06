@@ -2,6 +2,7 @@ from .database import db
 from flask_security import UserMixin, RoleMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
+import pytz
 
 class RequestLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -71,7 +72,7 @@ class Campaign(db.Model):
     start_date = db.Column(db.DateTime)
     end_date = db.Column(db.DateTime)
     budget = db.Column(db.Integer)
-    isActive = db.Column(db.Boolean)
+    isActive = db.Column(db.Boolean) # 0 = inactive, 1 = active
     progress = db.Column(db.Integer)
 
     sponsor_id = db.Column(db.Integer, db.ForeignKey('sponsor.id'),nullable=False)

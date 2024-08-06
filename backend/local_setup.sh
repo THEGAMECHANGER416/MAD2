@@ -9,8 +9,10 @@ echo "======================================="
 # Apt update and install
 sudo apt update
 sudo apt install -y python3-venv python3-pip
+sudo apt install -y sqlite3
 
 # Create virtual environment
+[ -d .venv ] && rm -rf .venv
 python3 -m venv .venv
 
 # Activate virtual environment

@@ -5,15 +5,17 @@ from flask import current_app as app
 from flask_security import Security, SQLAlchemyUserDatastore, auth_required
 from werkzeug.security import generate_password_hash
 from application.data.database import db
-from application.data.models import User,Role,Sponsor, Influencer, Campaign, AdRequest
+from application.data.models import User,Role,Sponsor, Influencer, Campaign, AdRequest, RequestLog
 from flask import Flask, request, jsonify, abort
 from flask_restful import Api, Resource, reqparse, fields, marshal_with
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 import werkzeug
-import datetime
+from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import os
+from collections import defaultdict
+import pytz
 
 # Signup parsers
 signup_parser = reqparse.RequestParser()
@@ -70,6 +72,84 @@ ad_request_parser.add_argument('payment_amount', type=float, required=True)
 ad_request_parser.add_argument('status', type=str, required=False)
 ad_request_parser.add_argument('goal', type=str, required=True)
 ad_request_parser.add_argument('platform', type=str, required=True)
+
+@app.before_request
+def log_request():
+    if request.path.startswith('/api'):  # Only log API requests
+        user_id = None
+        try:
+            verify_jwt_in_request()
+            user_id = get_jwt_identity()
+        except Exception:
+            pass  # No valid JWT found
+        
+        log = RequestLog(
+            timestamp=datetime.now(pytz.timezone('Asia/Kolkata')),
+            endpoint=request.path,
+            method=request.method,
+            user_id=user_id
+        )
+        db.session.add(log)
+        db.session.commit()
+
+class AdminAPI(Resource):
+    @jwt_required()
+    def get(self):
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if user.role.name != 'Admin':
+            return {'message': 'You do not have permission to access this resource'}, 403
+
+        total_users = User.query.count()
+        total_sponsors = Sponsor.query.count()
+        total_influencers = Influencer.query.count()
+        total_campaigns = Campaign.query.count()
+        total_ad_requests = AdRequest.query.count()
+
+        # Get the current date's start and end time
+        now = datetime.now()
+        start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = start_of_day + timedelta(days=1)
+
+        # Query to aggregate request logs for the current day
+        logs = db.session.query(
+            db.func.extract('hour', RequestLog.timestamp).label('hour'),
+            db.func.count(RequestLog.id).label('request_count')
+        ).filter(
+            RequestLog.timestamp >= start_of_day,
+            RequestLog.timestamp < end_of_day
+        ).group_by('hour').all()
+
+        # Create a dictionary with hours and counts
+        log_dict = defaultdict(int)
+        for log in logs:
+            log_dict[int(log.hour)] = log.request_count
+
+        # Generate data for the past 24 hours
+        hourly_request_data = []
+        for i in range(24):
+            hour = i
+            hourly_request_data.append({
+                'hour': hour,
+                'count': log_dict[hour]
+            })
+
+        # Influencers vs Sponsors data
+        pie_chart_data = {
+            'influencers': total_influencers,
+            'sponsors': total_sponsors
+        }
+
+        return {
+            'total_users': total_users,
+            'total_sponsors': total_sponsors,
+            'total_influencers': total_influencers,
+            'total_campaigns': total_campaigns,
+            'total_ad_requests': total_ad_requests,
+            'hourly_request_data': hourly_request_data,
+            'pie_chart_data': pie_chart_data
+        }
 
 # Resource classes
 class SignupAPI(Resource):
@@ -313,8 +393,8 @@ class CampaignAPI(Resource):
         new_campaign = Campaign(
             name=args['name'],
             description=args['description'],
-            start_date= datetime.datetime.strptime(args['start_date'], "%Y-%m-%d"),
-            end_date=datetime.datetime.strptime(args['end_date'], "%Y-%m-%d"),
+            start_date= datetime.strptime(args['start_date'], "%Y-%m-%d"),
+            end_date=datetime.strptime(args['end_date'], "%Y-%m-%d"),
             budget=args['budget'],
             isActive=args['isActive'],
             progress=args['progress'],
@@ -343,13 +423,14 @@ class CampaignAPI(Resource):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
 
-        if user.role.name != 'Sponsor' or campaign.sponsor_id != user.id:
+        # Check if the user has permission to edit the campaign
+        if (user.role.name != 'Sponsor' or campaign.sponsor_id != user.id) and user.role.name != 'Admin':
             return {'message': 'You do not have permission to edit this campaign'}, 403
 
         campaign.name = args['name']
         campaign.description = args['description']
-        start_date= datetime.datetime.strptime(args['start_date'], "%Y-%m-%d"),
-        end_date=datetime.datetime.strptime(args['end_date'], "%Y-%m-%d"),
+        start_date= datetime.strptime(args['start_date'], "%Y-%m-%d"),
+        end_date=datetime.strptime(args['end_date'], "%Y-%m-%d"),
         campaign.budget = args['budget']
         campaign.isActive = args['isActive']
         campaign.progress = args['progress']
@@ -511,6 +592,18 @@ class SearchAPI(Resource):
                 'reach': fields.Integer
             }) for result in influencers], 201
         elif user.role.name == 'Influencer':
+            campaigns = Campaign.query.filter(Campaign.name.like(f'%{query}%'))
+            return [marshal(result, {
+                'id': fields.Integer,
+                'name': fields.String,
+                'description': fields.String,
+                'start_date': fields.DateTime,
+                'end_date': fields.DateTime,
+                'budget': fields.Integer,
+                'isActive': fields.Boolean,
+                'progress': fields.Integer
+            }) for result in campaigns], 201
+        elif user.role.name == 'Admin':
             campaigns = Campaign.query.filter(Campaign.name.like(f'%{query}%'))
             return [marshal(result, {
                 'id': fields.Integer,

@@ -7,6 +7,9 @@
       <div v-else-if="role === 'Sponsor'">
         <SponsorHome />
       </div>
+      <div v-else-if="role === 'Admin'">
+        <AdminHome />
+      </div>
       <div v-else>Role: Unknown</div>
     </div>
     <div v-else>
@@ -18,12 +21,14 @@
 <script>
 import SponsorHome from '../components/SponsorHome.vue';
 import InfluencerHome from '../components/InfluencerHome.vue';
+import AdminHome from '../components/AdminHome.vue';
 
 export default {
   name: 'HomePage',
   components:{
     SponsorHome,
-    InfluencerHome
+    InfluencerHome,
+    AdminHome
   },
   computed: {
     user() {
@@ -80,5 +85,6 @@ export default {
 <style>
 .wrapper-class {
   margin-top: 5em;
+  padding: 0px;
 }
 </style>

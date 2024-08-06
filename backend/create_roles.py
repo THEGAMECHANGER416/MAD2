@@ -11,3 +11,10 @@ def create_roles():
 
     db.session.commit()
     print("Roles created successfully!")
+
+def create_admin():
+    admin = User(id=1, email='admin@brandly.com', role_id=1)
+    admin.set_password('admin@123')
+    db.session.add(admin)
+    db.session.commit()
+    print("Admin created successfully!")

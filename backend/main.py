@@ -10,7 +10,7 @@ from flask_security import Security, SQLAlchemySessionUserDatastore, SQLAlchemyU
 from application.data.models import User, Role, Sponsor, Influencer, Campaign, AdRequest
 from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
-from create_roles import create_roles
+from create_roles import create_roles, create_admin
 from flask_security import utils
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
@@ -52,8 +52,11 @@ def create_app():
     celery.Task = worker.ContextTask
     db.create_all()
 
-    if not Role.query.all():
+    if len(Role.query.all()) == 0:
         create_roles()
+    
+    if len(User.query.all()) == 0:
+        create_admin()
 
     return app, api, celery
 
@@ -70,13 +73,14 @@ def serve_file(filename):
 from application.controller.controllers import *
 
 # Importing all APIs
-from application.controller.api import SignupAPI, LoginAPI, ProfileAPI, CampaignAPI, AdRequestAPI, SearchAPI
+from application.controller.api import SignupAPI, LoginAPI, AdminAPI, ProfileAPI, CampaignAPI, AdRequestAPI, SearchAPI
 api.add_resource(SignupAPI, "/api/signup")
 api.add_resource(LoginAPI, "/api/login")
 api.add_resource(ProfileAPI, "/api/profile")
 api.add_resource(CampaignAPI, '/api/campaigns', '/api/campaigns/<int:campaign_id>')
 api.add_resource(AdRequestAPI, '/api/ad_requests', '/api/ad_requests/<int:ad_request_id>')
 api.add_resource(SearchAPI, '/api/search')
+api.add_resource(AdminAPI, '/api/admin')
 
 
 @app.errorhandler(404)

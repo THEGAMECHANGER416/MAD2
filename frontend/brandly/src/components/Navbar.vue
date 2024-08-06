@@ -50,16 +50,6 @@
           </li>
         </ul>
       </div>
-
-      <!-- Right elements -->
-      <div v-else class="d-flex align-items-center">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link text-black" href="#">Admin</a>
-          </li>
-        </ul>
-      </div>
-      <!-- Right elements -->
     </div>
     <!-- Container wrapper -->
   </nav>
