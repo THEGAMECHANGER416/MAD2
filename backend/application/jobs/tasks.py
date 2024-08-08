@@ -34,5 +34,5 @@ def send_monthly_report():
 
 @celery.on_after_finalize.connect
 def setup_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(crontab(hour='*/20', minute='*/45'), send_daily_reminders.s(), name='Daily Reminder')
-    sender.add_periodic_task(crontab(hour='*/23', minute='*/19', day_of_month='1'), send_monthly_report.s(), name='Monthly Report')
+    sender.add_periodic_task(crontab(hour='*/23', minute='*/19'), send_daily_reminders.s(), name='Daily Reminder')
+    sender.add_periodic_task(crontab(hour='*/23', minute='*/19', day_of_month='8'), send_monthly_report.s(), name='Monthly Report')

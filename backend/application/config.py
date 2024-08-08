@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config():
@@ -29,6 +30,9 @@ class LocalDevelopmentConfig(Config):
     MAIL_USE_SSL = False
     MAIL_USERNAME = 'apikey'
     MAIL_PASSWORD = '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'
+    JWT_EXPIRATION_DELTA = timedelta(days=7)
+    JWT_ACCESS_TOKEN_EXPIRES = 3600
+    SECURITY_TOKEN_MAX_AGE = 3600
 
 class StageConfig(Config):
     SQLITE_DB_DIR = os.path.join(basedir, "../db_directory")
@@ -51,3 +55,6 @@ class StageConfig(Config):
     MAIL_USE_SSL = False
     MAIL_USERNAME = 'apikey'
     MAIL_PASSWORD = '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'
+    JWT_EXPIRATION_DELTA = timedelta(days=7)
+    JWT_ACCESS_TOKEN_EXPIRES = 3600
+    SECURITY_TOKEN_MAX_AGE = 3600

@@ -335,8 +335,8 @@ class CampaignAPI(Resource):
             if user.role.name == 'Sponsor':
                 campaigns = Campaign.query.filter_by(sponsor_id=user_id).all()
             elif user.role.name == 'Influencer':
-                # Fetch recently created campaigns
-                campaigns = Campaign.query.order_by(Campaign.id.desc()).all()
+                # Fetch recently created campaigns that are active
+                campaigns = Campaign.query.filter_by(isActive=True).order_by(Campaign.id.desc()).all()
             return [marshal(campaign, {
                 'id': fields.Integer,
                 'name': fields.String,
@@ -355,7 +355,7 @@ class CampaignAPI(Resource):
             # Add influencer_name to each ad
             for ad in ads:
                 if ad.influencer_id is not None and ad.influencer_id != 0:
-                    ad.influencer_name = Influencer.query.filter_by(user_id=ad.influencer_id).first().name
+                    ad.influencer_name = Influencer.query.filter_by(id=ad.influencer_id).first().name
                 else:
                     ad.influencer_name = None
             campaign.ads = ads
@@ -494,7 +494,10 @@ class AdRequestAPI(Resource):
                 ad_requests = AdRequest.query.filter_by(influencer_id=user_id).all()
             # Add influencer_name field to each ad_request
             for ad_request in ad_requests:
-                ad_request.influencer_name = Influencer.query.filter_by(user_id=ad_request.influencer_id).first().name
+                if ad_request.influencer_id is not None and ad_request.influencer_id != 0:
+                    ad_request.influencer_name = Influencer.query.filter_by(id=ad_request.influencer_id).first().name
+                else:
+                    ad_request.influencer_name = ""
             return ad_requests
 
     @jwt_required()
@@ -592,7 +595,8 @@ class SearchAPI(Resource):
                 'reach': fields.Integer
             }) for result in influencers], 201
         elif user.role.name == 'Influencer':
-            campaigns = Campaign.query.filter(Campaign.name.like(f'%{query}%'))
+            # get active campaigns accoring to search query
+            campaigns = Campaign.query.filter(Campaign.name.like(f'%{query}%')).filter(Campaign.isActive == True)
             return [marshal(result, {
                 'id': fields.Integer,
                 'name': fields.String,
